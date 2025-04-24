@@ -1,0 +1,140 @@
+Gymborn - Game Design Document for Developers
+________________________________________
+1. Game Overview
+Title: Gymborn
+Genre: Fitness-Driven Idle RPG
+Platform: Mobile (iOS, Android) and Web
+Monetization: Premium Membership + Cosmetic Store (no pay-to-win)
+Core Pillars:
+•	Real-life fitness data powers in-game progression.
+•	Persistent character with stat-based RPG roles.
+•	Dungeons, raids, crafting, and marketplace.
+•	Inclusive design with soft visuals and gender-neutral aesthetics.
+•	No resets. One character evolves forever.
+________________________________________
+2. Player Profile
+•	Target Users: Fitness enthusiasts, RPG fans, gym-goers of all identities
+•	Onboarding: Choose fitness goals (optional), avatar customization (diverse options), connect fitness tracker, set home gym
+•	Progression: Based on tracked activity, dungeon completions, raid participation, and crafting
+________________________________________
+3. Stat System
+Stats:
+•	STR (Strength): From resistance training
+•	END (Endurance): From cardio
+•	WIS (Wisdom): From meditation/yoga
+•	REC (Recovery): From rest/sleep tracking
+Stats grow through daily logs and impact combat roles, gear, and crafting.
+________________________________________
+ 
+4. Roles (Classless System)
+Roles are unlocked through stat thresholds and selected per raid:
+Role	Requirements	Function
+Vanguard	STR ≥ 40, END ≥ 35	Tank
+Breaker	STR ≥ 50	Burst DPS
+Windstrider	END ≥ 50	Sustained DPS
+Mystic	WIS ≥ 45	Support Mage
+Sage	WIS ≥ 35, REC ≥ 30	Healer
+Architect	STR ≥ 30, Construction ≥ 30	Engineer / Support
+Verdant	REC ≥ 35, WIS ≥ 25	Debuffer / Healer
+All roles are accessible by anyone based on progression, encouraging flexibility.
+________________________________________
+5. Gameplay Loops
+Daily Loop:
+1.	Log workout (auto/manual/gym check-in)
+2.	Earn stat XP + idle rewards
+3.	Enter daily dungeon
+4.	Claim loot (mats, gold, cards)
+5.	Upgrade gear/base/skills
+Long-Term Loop:
+•	Unlock and master roles
+•	Complete raids
+•	Craft gear and potions
+•	Expand Gym Fortress (customizable themes)
+•	Trade in player marketplace
+________________________________________
+ 
+6. Verification System
+Gym Check-In:
+•	Add up to 5 gyms (10 Premium)
+•	GPS validation (Google Places API)
+•	Check-in proximity (within 100m) triggers full XP and dungeon access
+Cardio Verification:
+•	Pedometer + GPS syncing
+•	Distance, speed, step validation
+•	Detects cheating or spoofing
+Trust System:
+•	Tiers: Verified / Standard / Flagged
+•	Determines loot, raid eligibility, visibility in social features
+________________________________________
+7. Skills & Crafting
+Skill	Source	Uses
+Smithing	Ore, gear mats	Create weapons/armor
+Alchemy	Herbs, bottles	Craft potions
+Farming	Garden, loot	Grow herbs and consumables
+Runescribing	Wisdom + mats	Enchant gear
+Cooking	Food ingredients	Create stat-boosting meals
+Construction	Fortress mats	Upgrade Gym Fortress rooms
+Visuals: Soft magical effects, pastel liquids, cute ingredient sprites
+________________________________________
+8. Gym Fortress
+•	Customizable upgradable base
+•	Themes: Moonlight Garden, Crystal Lab, Cozy Studio
+•	Rooms: Meditation Hall, Forge, Garden, Lab, Kitchen
+•	Upgrades provide buffs, crafting bonuses, and idle XP boosts
+________________________________________
+ 
+Combat: Dungeons & Raids
+Dungeons:
+•	Solo, stat-specific challenges
+•	Themed by stat (e.g. Mystic Meditation Cave for WIS)
+•	Rewards: synergy cards, mats, gold
+Raids:
+•	2–5 players
+•	Role selection based on stat unlocks
+•	Coordinated boss fights (turn-based or synced logic)
+•	Emphasis on cooperation, not competition
+________________________________________
+10. Synergy Cards
+•	Dropped by bosses and raids
+•	Passive buffs (e.g., +10% WIS XP, +loot chance)
+•	Rare art themes: moonlight auras, forest spirits, cosmic energies
+•	Equip limit: 3 (4 for Premium users)
+________________________________________
+11. Marketplace
+•	Mid-game unlock
+•	P2P trading of crafted goods, potions, and cards
+•	5–10% tax on sales (reduced to 2–3% Premium)
+•	Bulk listing and Mailbox delivery
+•	UI: soft color-coded market tabs, animated coin drop sounds
+________________________________________
+ 
+12. Monetization
+Premium Membership:
+•	$7.99/month
+•	+1 card slot
+•	Reduced tax
+•	Instant mailbox
+•	10 gym slots
+•	Fortress themes
+•	Idle boost + cosmetic auras
+Cosmetics:
+•	Character skins (rogue robes, flowy dresses, light armor)
+•	Mounts (star fox, crystal wisp, floating spirit)
+•	Base decor (flower trellis, glowing runes, herbal kitchens)
+________________________________________
+13. Tech Stack (Suggested)
+•	Frontend: Flutter + Flame (Flutter UI + Flame for combat views)
+•	Backend: Firebase (Auth, Firestore, Functions, Storage)
+•	APIs: Google Maps + Places API, Fitbit, Apple Health, Google Fit
+•	Multiplayer: Firebase Realtime DB or WebSocket server
+•	UI Design: Soft-edged UI, feminine-friendly layouts, glow effects
+________________________________________
+14. Future Expansion
+•	Guild journaling and shared projects
+•	Seasonal raid events (e.g. Lunar Bloom Festival)
+•	Real-time co-op raid encounters (Flame engine scenes)
+•	Social scrapbooks and photo modes
+•	Emotional growth quests (mental health meets RPG)
+________________________________________
+Gymborn blends empowerment, health, and legacy into a lifelong adventure. Everyone belongs, and everyone grows.
+

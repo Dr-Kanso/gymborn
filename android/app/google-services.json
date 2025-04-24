@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "258501172299",
+    "project_id": "gymborn-6db05",
+    "storage_bucket": "gymborn-6db05.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258501172299:android:4ece1c0da4d9c2284d81ce",
+        "android_client_info": {
+          "package_name": "com.example.gymborn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258501172299:android:6b1a158146a6965b4d81ce",
+        "android_client_info": {
+          "package_name": "com.gymborn.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

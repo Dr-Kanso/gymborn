@@ -1,0 +1,55 @@
+name: gymborn_app
+description: A fitness-driven idle RPG that connects real-world fitness activities to in-game progression.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  firebase_storage: ^12.4.5
+  provider: ^6.1.4
+  google_maps_flutter: ^2.12.1
+  geolocator: ^14.0.0
+  health: ^12.1.0
+  permission_handler: ^12.0.0+1
+  flame: ^1.28.1
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.1.0
+  flutter_spinkit: ^5.2.1
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+   - assets/images/
+   - assets/images/fortress/
+   - assets/images/marketplace/
+   - assets/images/raids/
+   - assets/icons/
+
+  # Commenting out fonts until they are available
+  # fonts:
+  #   - family: Quicksand
+  #     fonts:
+  #       - asset: assets/fonts/Quicksand-Regular.ttf
+  #       - asset: assets/fonts/Quicksand-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Quicksand-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Quicksand-Bold.ttf
+  #         weight: 700
