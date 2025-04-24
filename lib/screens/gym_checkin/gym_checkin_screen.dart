@@ -4,7 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../components/custom_button.dart';
 import '../../components/gym_tile.dart';
 import '../../providers/auth_provider.dart';
@@ -12,6 +13,7 @@ import '../../providers/gym_provider.dart';
 import '../../services/gym_checkin_service.dart';
 import '../../themes/theme.dart';
 import '../../config/constants.dart';
+import '../../widgets/osm_map.dart';
 
 class GymCheckinScreen extends StatefulWidget {
   const GymCheckinScreen({super.key});
@@ -24,10 +26,10 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = false;
-  GoogleMapController? _mapController;
+  MapController? _mapController;
   Gym? _selectedGym;
   Position? _currentPosition;
-  Set<Marker> _markers = {};
+  List<Marker> _markers = [];
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -43,7 +45,6 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _mapController?.dispose();
     _nameController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -115,14 +116,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
       });
 
       if (_mapController != null) {
-        _mapController!.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(position.latitude, position.longitude),
-              zoom: 14,
-            ),
-          ),
-        );
+        _mapController!.move(LatLng(position.latitude, position.longitude), 14);
         _updateMarkers();
       }
     } catch (e) {
@@ -147,18 +141,19 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
     if (_currentPosition == null) return;
 
     final gymProvider = Provider.of<GymProvider>(context, listen: false);
-    Set<Marker> markers = {};
+    List<Marker> markers = [];
 
     // Current location marker
     markers.add(
       Marker(
-        markerId: const MarkerId('current_location'),
-        position: LatLng(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
+        width: 40.0,
+        height: 40.0,
+        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        child: const Icon(
+          Icons.location_history,
+          color: Colors.blue,
+          size: 40.0,
         ),
-        infoWindow: const InfoWindow(title: 'Your Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       ),
     );
 
@@ -166,17 +161,14 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
     for (var gym in gymProvider.userGyms) {
       markers.add(
         Marker(
-          markerId: MarkerId(gym.id),
-          position: gym.latLng,
-          infoWindow: InfoWindow(title: gym.name),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueViolet,
+          width: 40.0,
+          height: 40.0,
+          point: gym.latLng,
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.purple,
+            size: 40.0,
           ),
-          onTap: () {
-            setState(() {
-              _selectedGym = gym;
-            });
-          },
         ),
       );
     }
@@ -188,15 +180,14 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
 
       markers.add(
         Marker(
-          markerId: MarkerId(gym.id),
-          position: gym.latLng,
-          infoWindow: InfoWindow(title: gym.name),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          onTap: () {
-            setState(() {
-              _selectedGym = gym;
-            });
-          },
+          width: 40.0,
+          height: 40.0,
+          point: gym.latLng,
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.red,
+            size: 40.0,
+          ),
         ),
       );
     }
@@ -353,31 +344,43 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
         Expanded(
           child: Stack(
             children: [
-              // Google Map
+              // OpenStreetMap
               _isLoading || _currentPosition == null
                   ? const Center(child: CircularProgressIndicator())
-                  : GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(
-                        _currentPosition!.latitude,
-                        _currentPosition!.longitude,
-                      ),
-                      zoom: 14,
+                  : OpenStreetMapWidget(
+                    initialPosition: LatLng(
+                      _currentPosition!.latitude,
+                      _currentPosition!.longitude,
                     ),
-                    onMapCreated: (GoogleMapController controller) {
-                      _mapController = controller;
-                      _updateMarkers();
-                    },
+                    initialZoom: 14,
                     markers: _markers,
                     myLocationEnabled: true,
                     myLocationButtonEnabled: true,
                     zoomControlsEnabled: false,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      _updateMarkers();
+                    },
                     onTap: (_) {
                       setState(() {
                         _selectedGym = null;
                       });
                     },
                   ),
+
+              // Attribution
+              Positioned(
+                bottom: 0,
+                left: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  color: Colors.white.withOpacity(0.7),
+                  child: const Text(
+                    '© OpenStreetMap contributors',
+                    style: TextStyle(fontSize: 10),
+                  ),
+                ),
+              ),
 
               // Refresh button
               Positioned(
@@ -397,7 +400,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
               // Selected gym card
               if (_selectedGym != null)
                 Positioned(
-                  bottom: 0,
+                  bottom: 24,
                   left: 0,
                   right: 0,
                   child: Container(

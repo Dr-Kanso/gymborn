@@ -35,22 +35,22 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Placeholder values - replace with actual project configuration
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI',
-    appId: '1:258501172299:android:6b1a158146a6965b4d81ce',
-    messagingSenderId: '258501172299',
-    projectId: 'gymborn-6db05',
-    authDomain: 'gymborn-6db05.firebaseapp.com',
-    storageBucket: 'gymborn-6db05.firebasestorage.app',
-  );
-
   // Updated Android configuration to match google-services.json
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI',
+    apiKey: 'AIzaSyAEMOeobzdIUiI3lP6OYqpDeflyDtGS-M8',
     appId: '1:258501172299:android:4ece1c0da4d9c2284d81ce',
     messagingSenderId: '258501172299',
     projectId: 'gymborn-6db05',
+    storageBucket: 'gymborn-6db05.firebasestorage.app',
+  );
+
+  // Placeholder values - replace with actual project configuration
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'placeholder',
+    appId: 'placeholder',
+    messagingSenderId: 'placeholder',
+    projectId: 'gymborn-6db05',
+    authDomain: 'gymborn-6db05.firebaseapp.com',
     storageBucket: 'gymborn-6db05.firebasestorage.app',
   );
 

@@ -4,7 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../components/custom_button.dart';
 import '../../themes/theme.dart';
 
-enum AuthMode { SignIn, SignUp }
+enum AuthMode { signIn, signUp }
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -16,7 +16,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
   final GlobalKey<FormState> _formKey = GlobalKey();
-  AuthMode _authMode = AuthMode.SignIn;
+  AuthMode _authMode = AuthMode.signIn;
   final Map<String, String> _authData = {
     'email': '',
     'password': '',
@@ -57,14 +57,14 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   void _switchAuthMode() {
-    if (_authMode == AuthMode.SignIn) {
+    if (_authMode == AuthMode.signIn) {
       setState(() {
-        _authMode = AuthMode.SignUp;
+        _authMode = AuthMode.signUp;
       });
       _animationController.forward();
     } else {
       setState(() {
-        _authMode = AuthMode.SignIn;
+        _authMode = AuthMode.signIn;
       });
       _animationController.reverse();
     }
@@ -78,7 +78,7 @@ class _AuthScreenState extends State<AuthScreen>
     _formKey.currentState!.save();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    if (_authMode == AuthMode.SignIn) {
+    if (_authMode == AuthMode.signIn) {
       await authProvider.signIn(_authData['email']!, _authData['password']!);
     } else {
       await authProvider.register(
@@ -176,7 +176,7 @@ class _AuthScreenState extends State<AuthScreen>
                       children: [
                         const SizedBox(height: 24),
                         Text(
-                          _authMode == AuthMode.SignIn
+                          _authMode == AuthMode.signIn
                               ? 'Sign In'
                               : 'Create Account',
                           style: TextStyle(
@@ -187,7 +187,7 @@ class _AuthScreenState extends State<AuthScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _authMode == AuthMode.SignIn
+                          _authMode == AuthMode.signIn
                               ? 'Welcome back! Please sign in to continue'
                               : 'Create an account to start your fitness journey',
                           style: TextStyle(
@@ -198,7 +198,7 @@ class _AuthScreenState extends State<AuthScreen>
                         const SizedBox(height: 24),
 
                         // Display Name field (only in SignUp)
-                        if (_authMode == AuthMode.SignUp)
+                        if (_authMode == AuthMode.signUp)
                           FadeTransition(
                             opacity: _opacityAnimation,
                             child: SlideTransition(
@@ -223,7 +223,7 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                             ),
                           ),
-                        if (_authMode == AuthMode.SignUp)
+                        if (_authMode == AuthMode.signUp)
                           const SizedBox(height: 16),
 
                         // Email field
@@ -288,7 +288,7 @@ class _AuthScreenState extends State<AuthScreen>
                         const SizedBox(height: 16),
 
                         // Confirm Password field (only in SignUp)
-                        if (_authMode == AuthMode.SignUp)
+                        if (_authMode == AuthMode.signUp)
                           FadeTransition(
                             opacity: _opacityAnimation,
                             child: SlideTransition(
@@ -303,7 +303,7 @@ class _AuthScreenState extends State<AuthScreen>
                                 ),
                                 obscureText: true,
                                 validator:
-                                    _authMode == AuthMode.SignUp
+                                    _authMode == AuthMode.signUp
                                         ? (value) {
                                           if (value !=
                                               _passwordController.text) {
@@ -321,7 +321,7 @@ class _AuthScreenState extends State<AuthScreen>
                         // Submit button
                         CustomButton(
                           text:
-                              _authMode == AuthMode.SignIn
+                              _authMode == AuthMode.signIn
                                   ? 'Sign In'
                                   : 'Sign Up',
                           onPressed: _submit,
@@ -335,7 +335,7 @@ class _AuthScreenState extends State<AuthScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _authMode == AuthMode.SignIn
+                              _authMode == AuthMode.signIn
                                   ? 'Don\'t have an account?'
                                   : 'Already have an account?',
                               style: TextStyle(color: kLightTextColor),
@@ -343,7 +343,7 @@ class _AuthScreenState extends State<AuthScreen>
                             TextButton(
                               onPressed: _switchAuthMode,
                               child: Text(
-                                _authMode == AuthMode.SignIn
+                                _authMode == AuthMode.signIn
                                     ? 'Sign Up'
                                     : 'Sign In',
                                 style: TextStyle(

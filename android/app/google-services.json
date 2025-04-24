@@ -12,34 +12,25 @@
           "package_name": "com.example.gymborn"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "258501172299-7uojflikn1hucd51ju57n4oogmmhb4iu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI"
+          "current_key": "AIzaSyAEMOeobzdIUiI3lP6OYqpDeflyDtGS-M8"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:258501172299:android:6b1a158146a6965b4d81ce",
-        "android_client_info": {
-          "package_name": "com.gymborn.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDSp-kK4SSbLKk8EzRnZbp-WoEh8Vc36MI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258501172299-7uojflikn1hucd51ju57n4oogmmhb4iu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

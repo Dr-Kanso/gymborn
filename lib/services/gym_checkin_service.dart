@@ -2,7 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import '../config/constants.dart';
 
 class Gym {
@@ -40,7 +40,7 @@ class Gym {
     };
   }
 
-  // Convert GeoPoint to LatLng for Google Maps
+  // Convert GeoPoint to LatLng for OpenStreetMap
   LatLng get latLng => LatLng(location.latitude, location.longitude);
 }
 
