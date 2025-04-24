@@ -308,6 +308,11 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                             // Show gym details or select it
                           },
                           onCheckIn: () async {
+                            // Store a reference to ScaffoldMessenger before async operations
+                            final scaffoldMessenger = ScaffoldMessenger.of(
+                              context,
+                            );
+
                             bool isAtGym = await gymProvider.checkIfAtGym(gym);
 
                             if (!mounted) return;
@@ -321,14 +326,15 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                               if (!mounted) return;
 
                               if (success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                scaffoldMessenger.showSnackBar(
                                   const SnackBar(
                                     content: Text('Successfully checked in!'),
                                   ),
                                 );
                               }
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              if (!mounted) return;
+                              scaffoldMessenger.showSnackBar(
                                 const SnackBar(
                                   content: Text(
                                     'You need to be at the gym to check in',
