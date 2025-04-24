@@ -81,7 +81,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: kPrimaryColor.withOpacity(0.1),
+          color: kPrimaryColor.withAlpha(
+            (0.1 * 255).round(),
+          ), // Changed from withOpacity
           child: Row(
             children: [
               Icon(Icons.info_outline, color: kPrimaryColor),
@@ -134,7 +136,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: dungeon['color'].withOpacity(0.2),
+                      color: dungeon['color'].withAlpha(
+                        (0.2 * 255).round(),
+                      ), // Changed from withOpacity
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -232,11 +236,16 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
           // Dungeon image
           Container(
-            height: 180,
+            height: 120,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: dungeon['color'].withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
+              color: dungeon['color'].withAlpha(
+                (0.2 * 255).round(),
+              ), // Changed from withOpacity
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
             ),
             child: Center(
               child: Icon(dungeon['icon'], size: 72, color: dungeon['color']),
@@ -301,7 +310,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: dungeon['color'].withOpacity(0.2),
+                      color: dungeon['color'].withAlpha(
+                        (0.2 * 255).round(),
+                      ), // Changed from withOpacity
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(

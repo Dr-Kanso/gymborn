@@ -36,7 +36,11 @@ class DungeonGame extends FlameGame with TapDetector, HasCollisionDetection {
     // Set up background
     final background = RectangleComponent(
       size: size,
-      paint: Paint()..color = dungeonColor.withOpacity(0.2),
+      paint:
+          Paint()
+            ..color = dungeonColor.withAlpha(
+              (0.2 * 255).round(),
+            ), // Changed from withOpacity
     );
     add(background);
 

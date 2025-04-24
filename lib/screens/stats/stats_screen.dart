@@ -166,8 +166,10 @@ class _StatsScreenState extends State<StatsScreen>
             decoration: BoxDecoration(
               color:
                   isUnlocked
-                      ? kSecondaryColor.withOpacity(0.2)
-                      : Colors.grey.withOpacity(0.2),
+                      ? kSecondaryColor.withAlpha(
+                        (0.2 * 255).round(),
+                      ) // Updated
+                      : Colors.grey.withAlpha((0.2 * 255).round()), // Updated
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
@@ -261,7 +263,7 @@ class _StatsScreenState extends State<StatsScreen>
                         statType: 'STR',
                         gainAmount: 3,
                       );
-
+                      if (!mounted) return; // Add mounted check
                       _showResultSnackbar(success, 'STR +3');
                     },
                   ),
@@ -282,7 +284,7 @@ class _StatsScreenState extends State<StatsScreen>
                         statType: 'END',
                         gainAmount: 2,
                       );
-
+                      if (!mounted) return; // Add mounted check
                       _showResultSnackbar(success, 'END +2');
                     },
                   ),
@@ -303,7 +305,7 @@ class _StatsScreenState extends State<StatsScreen>
                         statType: 'WIS',
                         gainAmount: 2,
                       );
-
+                      if (!mounted) return; // Add mounted check
                       _showResultSnackbar(success, 'WIS +2');
                     },
                   ),
@@ -324,7 +326,7 @@ class _StatsScreenState extends State<StatsScreen>
                         statType: 'REC',
                         gainAmount: 2,
                       );
-
+                      if (!mounted) return; // Add mounted check
                       _showResultSnackbar(success, 'REC +2');
                     },
                   ),
@@ -412,6 +414,8 @@ class _StatsScreenState extends State<StatsScreen>
                       Map<String, int> statGains = await statsProvider
                           .calculateStatsFromHealthData(_startDate, _endDate);
 
+                      if (!mounted) return; // Add mounted check
+
                       if (statGains.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -434,7 +438,7 @@ class _StatsScreenState extends State<StatsScreen>
                       statGains.forEach((stat, value) {
                         message += '$stat +$value ';
                       });
-
+                      if (!mounted) return; // Add mounted check
                       _showResultSnackbar(success, message);
                     },
                     isLoading: statsProvider.isLoading,
@@ -464,7 +468,7 @@ class _StatsScreenState extends State<StatsScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withAlpha((0.1 * 255).round()), // Updated
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -507,6 +511,7 @@ class _StatsScreenState extends State<StatsScreen>
   }
 
   void _showResultSnackbar(bool success, String statChange) {
+    if (!mounted) return; // Add mounted check
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(

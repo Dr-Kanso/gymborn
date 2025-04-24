@@ -70,7 +70,7 @@ class _SynergyCardsScreenState extends State<SynergyCardsScreen> {
           // Info banner
           Container(
             padding: const EdgeInsets.all(16),
-            color: kPrimaryColor.withOpacity(0.1),
+            color: kPrimaryColor.withAlpha((0.1 * 255).round()),
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: kPrimaryColor),
@@ -201,12 +201,15 @@ class _SynergyCardsScreenState extends State<SynergyCardsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [cardColor.withOpacity(0.7), cardColor.withOpacity(0.9)],
+            colors: [
+              cardColor.withAlpha((0.7 * 255).round()),
+              cardColor.withAlpha((0.9 * 255).round()),
+            ],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: cardColor.withOpacity(0.3),
+              color: cardColor.withAlpha((0.3 * 255).round()),
               blurRadius: 5,
               offset: const Offset(0, 3),
             ),
@@ -241,7 +244,7 @@ class _SynergyCardsScreenState extends State<SynergyCardsScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withAlpha((0.2 * 255).round()),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -257,7 +260,7 @@ class _SynergyCardsScreenState extends State<SynergyCardsScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: Icon(
@@ -364,7 +367,7 @@ class _SynergyCardsScreenState extends State<SynergyCardsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: cardColor.withOpacity(0.2),
+                        color: cardColor.withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

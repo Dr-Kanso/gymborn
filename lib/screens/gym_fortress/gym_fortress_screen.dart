@@ -94,7 +94,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
       'level': 1,
       'maxLevel': 5,
       'icon': Icons.science,
-      'color': kWisColor.withOpacity(0.7),
+      'color': kWisColor.withAlpha(
+        (0.7 * 255).round(),
+      ), // Changed from withOpacity
       'upgradeCost': 800,
     },
     {
@@ -112,7 +114,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
       'level': 0,
       'maxLevel': 5,
       'icon': Icons.sports_kabaddi,
-      'color': kStrColor.withOpacity(0.7),
+      'color': kStrColor.withAlpha(
+        (0.7 * 255).round(),
+      ), // Changed from withOpacity
       'upgradeCost': 1000,
     },
   ];
@@ -156,7 +160,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
             height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: _getThemeColor().withOpacity(0.2),
+              color: _getThemeColor().withAlpha(
+                (0.2 * 255).round(),
+              ), // Changed from withOpacity
               image: DecorationImage(
                 image: AssetImage('assets/images/fortress/$_currentTheme.png'),
                 fit: BoxFit.cover,
@@ -171,7 +177,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withAlpha(
+                      (0.4 * 255).round(),
+                    ), // Changed from withOpacity
                     padding: const EdgeInsets.symmetric(
                       vertical: 8,
                       horizontal: 16,
@@ -193,7 +201,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withAlpha(
+                              (0.4 * 255).round(),
+                            ), // Changed from withOpacity
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -221,7 +231,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
           // Info banner
           Container(
             padding: const EdgeInsets.all(16),
-            color: _getThemeColor().withOpacity(0.1),
+            color: _getThemeColor().withAlpha(
+              (0.1 * 255).round(),
+            ), // Changed from withOpacity
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: _getThemeColor()),
@@ -267,7 +279,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                           decoration: BoxDecoration(
                             color:
                                 isSelected
-                                    ? room['color'].withOpacity(0.2)
+                                    ? room['color'].withAlpha(
+                                      (0.2 * 255).round(),
+                                    ) // Changed from withOpacity
                                     : null,
                             border:
                                 isSelected
@@ -316,7 +330,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: room['color'].withOpacity(0.2),
+                                      color: room['color'].withAlpha(
+                                        (0.2 * 255).round(),
+                                      ), // Changed from withOpacity
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -335,7 +351,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.withOpacity(0.2),
+                                      color: Colors.grey.withAlpha(
+                                        (0.2 * 255).round(),
+                                      ), // Changed from withOpacity
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Text(
@@ -434,7 +452,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: room['color'].withOpacity(0.2),
+                  color: room['color'].withAlpha(
+                    (0.2 * 255).round(),
+                  ), // Changed from withOpacity
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(room['icon'], color: room['color'], size: 32),
@@ -556,7 +576,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withAlpha(
+                  (0.1 * 255).round(),
+                ), // Changed from withOpacity
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -643,7 +665,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: theme['color'].withOpacity(0.2),
+                                      color: theme['color'].withAlpha(
+                                        (0.2 * 255).round(),
+                                      ), // Changed from withOpacity
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
@@ -786,7 +810,9 @@ class _GymFortressScreenState extends State<GymFortressScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: room['color'].withOpacity(0.2),
+                                      color: room['color'].withAlpha(
+                                        (0.2 * 255).round(),
+                                      ), // Changed from withOpacity
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(

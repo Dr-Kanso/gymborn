@@ -72,7 +72,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
     'Runescribing': {
       'description': 'Create magical runes to enhance equipment and abilities.',
       'icon': Icons.auto_fix_high,
-      'color': kWisColor.withOpacity(0.7),
+      'color': kWisColor.withAlpha((0.7 * 255).round()), // Updated
       'level': 3,
       'maxLevel': 100,
       'recipes': [
@@ -159,7 +159,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         decoration: BoxDecoration(
                           color:
                               isSelected
-                                  ? skill['color'].withOpacity(0.2)
+                                  ? skill['color'].withAlpha(
+                                    (0.2 * 255).round(),
+                                  ) // Updated
                                   : null,
                           border:
                               isSelected
@@ -343,7 +345,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: skill['color'].withOpacity(0.2),
+                  color: skill['color'].withAlpha(
+                    (0.2 * 255).round(),
+                  ), // Updated
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(skill['icon'], color: skill['color'], size: 32),
@@ -502,8 +506,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   decoration: BoxDecoration(
                     color:
                         locked
-                            ? Colors.grey.withOpacity(0.2)
-                            : skillColor.withOpacity(0.2),
+                            ? Colors.grey.withAlpha(
+                              (0.2 * 255).round(),
+                            ) // Updated
+                            : skillColor.withAlpha(
+                              (0.2 * 255).round(),
+                            ), // Updated
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -530,7 +538,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withAlpha(
+                        (0.2 * 255).round(),
+                      ), // Updated
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

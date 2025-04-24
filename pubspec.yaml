@@ -39,11 +39,19 @@ flutter:
   uses-material-design: true
 
   assets:
-   - assets/images/
-   - assets/images/fortress/
-   - assets/images/marketplace/
-   - assets/images/raids/
-   - assets/icons/
+    - assets/images/
+    - assets/images/characters/
+    - assets/images/dungeons/
+    - assets/images/raids/
+    - assets/images/fortress/
+    - assets/images/marketplace/
+    - assets/images/synergy_cards/
+    - assets/images/gym_checkin/
+    - assets/images/ui/
+    - assets/icons/
+    - assets/sfx/
+    - assets/animations/
+    - assets/fonts/
 
   # Commenting out fonts until they are available
   # fonts:

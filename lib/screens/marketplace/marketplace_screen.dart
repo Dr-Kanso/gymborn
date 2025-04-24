@@ -124,7 +124,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
           // Info banner
           Container(
             padding: const EdgeInsets.all(16),
-            color: kPrimaryColor.withOpacity(0.1),
+            color: kPrimaryColor.withAlpha(
+              (0.1 * 255).round(),
+            ), // Changed from withOpacity
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: kPrimaryColor),
@@ -300,7 +302,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: (item['color'] as Color).withOpacity(0.2),
+                  color: (item['color'] as Color).withAlpha(
+                    (0.2 * 255).round(),
+                  ), // Changed from withOpacity
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -423,7 +427,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: (item['color'] as Color).withOpacity(0.2),
+                      color: (item['color'] as Color).withAlpha(
+                        (0.2 * 255).round(),
+                      ), // Changed from withOpacity
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(

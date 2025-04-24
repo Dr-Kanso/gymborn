@@ -88,6 +88,9 @@ class _AuthScreenState extends State<AuthScreen>
       );
     }
 
+    // Check if the widget is still mounted before using the BuildContext
+    if (!mounted) return;
+
     if (authProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -157,7 +160,7 @@ class _AuthScreenState extends State<AuthScreen>
                         'Your Fitness Journey Begins',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withAlpha((0.8 * 255).round()),
                         ),
                       ),
                     ],

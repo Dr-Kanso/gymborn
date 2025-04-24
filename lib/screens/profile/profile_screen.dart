@@ -70,7 +70,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 60,
-                    backgroundColor: kPrimaryColor.withOpacity(0.2),
+                    backgroundColor: kPrimaryColor.withAlpha(
+                      (0.2 * 255).round(),
+                    ),
                     child:
                         user.photoUrl.isNotEmpty
                             ? ClipRRect(
@@ -147,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       color: _getTrustLevelColor(
                         user.trustLevel,
-                      ).withOpacity(0.2),
+                      ).withAlpha((0.2 * 255).round()),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -176,12 +178,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         text: 'Save Changes',
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
+                            // Capture ScaffoldMessenger before the async gap
+                            final scaffoldMessenger = ScaffoldMessenger.of(
+                              context,
+                            );
+
                             bool success = await authProvider.updateProfile(
                               displayName: _displayNameController.text,
                             );
 
+                            if (!mounted) return;
+
                             if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              // Use captured scaffoldMessenger instead of getting it from context again
+                              scaffoldMessenger.showSnackBar(
                                 const SnackBar(
                                   content: Text('Profile updated successfully'),
                                 ),
@@ -324,11 +334,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withAlpha((0.2 * 255).round()),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Icon(icon, color: color, size: 24),
-            ),
+            ), // Changed from } to )
             const SizedBox(width: 16),
             Expanded(
               child: Column(

@@ -81,7 +81,7 @@ class _RaidsScreenState extends State<RaidsScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: kPrimaryColor.withOpacity(0.1),
+          color: kPrimaryColor.withAlpha((0.1 * 255).round()),
           child: Row(
             children: [
               Icon(Icons.info_outline, color: kPrimaryColor),
@@ -130,7 +130,7 @@ class _RaidsScreenState extends State<RaidsScreen> {
               height: 120,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: raid['color'].withOpacity(0.2),
+                color: raid['color'].withAlpha((0.2 * 255).round()),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -163,7 +163,7 @@ class _RaidsScreenState extends State<RaidsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: raid['color'].withOpacity(0.2),
+                          color: raid['color'].withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -233,7 +233,9 @@ class _RaidsScreenState extends State<RaidsScreen> {
           Container(
             height: 200,
             width: double.infinity,
-            decoration: BoxDecoration(color: raid['color'].withOpacity(0.2)),
+            decoration: BoxDecoration(
+              color: raid['color'].withAlpha((0.2 * 255).round()),
+            ),
             child: Center(
               child: Icon(Icons.panorama, size: 72, color: raid['color']),
             ),
@@ -283,7 +285,7 @@ class _RaidsScreenState extends State<RaidsScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: raid['color'].withOpacity(0.2),
+                        color: raid['color'].withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -339,8 +341,12 @@ class _RaidsScreenState extends State<RaidsScreen> {
                           decoration: BoxDecoration(
                             color:
                                 isAvailable
-                                    ? raid['color'].withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.2),
+                                    ? raid['color'].withAlpha(
+                                      (0.2 * 255).round(),
+                                    )
+                                    : Colors.grey.withAlpha(
+                                      (0.2 * 255).round(),
+                                    ),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isAvailable ? raid['color'] : Colors.grey,
@@ -384,7 +390,9 @@ class _RaidsScreenState extends State<RaidsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withAlpha(
+                                  (0.1 * 255).round(),
+                                ),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -423,7 +431,9 @@ class _RaidsScreenState extends State<RaidsScreen> {
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
                               leading: CircleAvatar(
-                                backgroundColor: raid['color'].withOpacity(0.2),
+                                backgroundColor: raid['color'].withAlpha(
+                                  (0.2 * 255).round(),
+                                ),
                                 child: const Icon(Icons.person),
                               ),
                               title: Text(participant['name']),
@@ -476,8 +486,9 @@ class _RaidsScreenState extends State<RaidsScreen> {
                                         _selectedRole = roleType;
                                       });
                                     },
-                                    selectedColor: raid['color'].withOpacity(
-                                      0.2,
+                                    selectedColor: raid['color'].withAlpha(
+                                      // Updated
+                                      (0.2 * 255).round(),
                                     ),
                                   );
                                 }).toList(),

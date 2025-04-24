@@ -271,7 +271,9 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: kPrimaryColor.withOpacity(0.1),
+          color: kPrimaryColor.withAlpha(
+            (0.1 * 255).round(),
+          ), // Changed from withOpacity
           child: Row(
             children: [
               Icon(Icons.info_outline, color: kPrimaryColor),
@@ -425,7 +427,9 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                 left: 0,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withAlpha(
+                    (0.7 * 255).round(),
+                  ), // Changed from withOpacity
                   child: const Text(
                     '© OpenStreetMap contributors',
                     style: TextStyle(fontSize: 10),
