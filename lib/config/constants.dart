@@ -18,7 +18,7 @@ class GymConstants {
   // Gym check-in details
   static const int freeGymSlots = 5;
   static const int premiumGymSlots = 10;
-  static const int gymCheckInProximityInMeters = 100;
+  static const int gymCheckInProximityInMeters = 10000; // 10 km
 
   // Premium features
   static const int freeCardSlots = 3;

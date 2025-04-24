@@ -310,11 +310,16 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                           onCheckIn: () async {
                             bool isAtGym = await gymProvider.checkIfAtGym(gym);
 
+                            if (!mounted) return;
+
                             if (isAtGym) {
                               bool success = await gymProvider.checkInToGym(
                                 userId,
                                 gym,
                               );
+
+                              if (!mounted) return;
+
                               if (success) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -334,6 +339,8 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                             }
                           },
                           onRemove: () async {
+                            if (!mounted) return;
+
                             bool confirmed =
                                 await showDialog(
                                   context: context,
