@@ -30,6 +30,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
   Gym? _selectedGym;
   Position? _currentPosition;
   List<Marker> _markers = [];
+  LeisureCenter? _selectedLeisureCenter;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -134,6 +135,16 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
   Future<void> _loadNearbyGyms() async {
     final gymProvider = Provider.of<GymProvider>(context, listen: false);
     await gymProvider.loadNearbyGyms(5000); // 5km radius
+
+    // Load leisure centers if position is available
+    if (_currentPosition != null) {
+      await gymProvider.loadLeisureCenters(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        5000, // 5km radius
+      );
+    }
+
     _updateMarkers();
   }
 
@@ -187,6 +198,33 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
             Icons.fitness_center,
             color: Colors.red,
             size: 40.0,
+          ),
+        ),
+      );
+    }
+
+    // Leisure centers
+    for (var center in gymProvider.leisureCenters) {
+      // Skip if this center is already a registered gym
+      if (gymProvider.userGyms.any((gym) => gym.id == center.id)) continue;
+
+      markers.add(
+        Marker(
+          width: 40.0,
+          height: 40.0,
+          point: LatLng(center.latitude, center.longitude),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedLeisureCenter = center;
+                _selectedGym = null; // Clear any selected gym
+              });
+            },
+            child: const Icon(
+              Icons.fitness_center,
+              color: Colors.green,
+              size: 40.0,
+            ),
           ),
         ),
       );
@@ -444,9 +482,114 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                   ),
                 ),
 
+              // Selected leisure center card
+              if (_selectedLeisureCenter != null)
+                Positioned(
+                  bottom: 24,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    margin: const EdgeInsets.all(16),
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _selectedLeisureCenter!.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (_selectedLeisureCenter!.address != null &&
+                                _selectedLeisureCenter!.address!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(_selectedLeisureCenter!.address!),
+                              ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedLeisureCenter = null;
+                                    });
+                                  },
+                                  child: const Text('CANCEL'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    // Convert to Gym and add it
+                                    Gym newGym =
+                                        _selectedLeisureCenter!.toGym();
+
+                                    bool success = await gymProvider.addNewGym(
+                                      newGym,
+                                      userId,
+                                    );
+
+                                    if (success) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Gym added successfully!',
+                                          ),
+                                        ),
+                                      );
+
+                                      setState(() {
+                                        _selectedLeisureCenter = null;
+                                      });
+
+                                      _tabController.animateTo(0);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            gymProvider.errorMessage ??
+                                                'Failed to add gym',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: kPrimaryColor,
+                                  ),
+                                  child: const Text(
+                                    'ADD GYM',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               // Manual gym button
               Positioned(
-                bottom: _selectedGym != null ? 128 : 16,
+                bottom:
+                    (_selectedGym != null || _selectedLeisureCenter != null)
+                        ? 128
+                        : 16,
                 right: 16,
                 child: FloatingActionButton(
                   onPressed: _showAddGymDialog,

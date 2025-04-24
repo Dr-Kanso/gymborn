@@ -1,9 +1,40 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 import '../models/user.dart';
 import '../services/gym_checkin_service.dart';
 import '../services/firestore_service.dart';
 import '../config/constants.dart';
+
+class LeisureCenter {
+  final String id;
+  final String name;
+  final double latitude;
+  final double longitude;
+  final String? address;
+
+  LeisureCenter({
+    required this.id,
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    this.address,
+  });
+
+  // Convert to Gym model
+  Gym toGym() {
+    return Gym(
+      id: id,
+      name: name,
+      address: address ?? 'Leisure Center',
+      location: GeoPoint(latitude, longitude),
+    );
+  }
+}
 
 class GymProvider with ChangeNotifier {
   final GymCheckinService _gymCheckinService = GymCheckinService();
@@ -15,6 +46,7 @@ class GymProvider with ChangeNotifier {
 
   List<Gym> _userGyms = [];
   List<Gym> _nearbyGyms = [];
+  List<LeisureCenter> _leisureCenters = [];
   Gym? _currentGym;
   bool _isCheckedIn = false;
   bool _isLoading = false;
@@ -22,6 +54,7 @@ class GymProvider with ChangeNotifier {
 
   List<Gym> get userGyms => _userGyms;
   List<Gym> get nearbyGyms => _nearbyGyms;
+  List<LeisureCenter> get leisureCenters => _leisureCenters;
   Gym? get currentGym => _currentGym;
   bool get isCheckedIn => _isCheckedIn;
   bool get isLoading => _isLoading;
@@ -187,6 +220,91 @@ class GymProvider with ChangeNotifier {
     } catch (error) {
       setError('Failed to remove gym: $error');
       return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Load nearby leisure centers
+  Future<void> loadLeisureCenters(
+    double lat,
+    double lon,
+    double radiusInMeters,
+  ) async {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Calculate bounding box (rough estimate)
+      double approxLatDegrees = radiusInMeters / 111000; // 111km ~ 1 degree lat
+      double approxLonDegrees = radiusInMeters / (111000 * cos(lat * pi / 180));
+
+      double minLat = lat - approxLatDegrees;
+      double maxLat = lat + approxLatDegrees;
+      double minLon = lon - approxLonDegrees;
+      double maxLon = lon + approxLonDegrees;
+
+      // Create Overpass API query to find leisure centers
+      String query = '''
+      [out:json];
+      (
+        node["leisure"="fitness_centre"]($minLat,$minLon,$maxLat,$maxLon);
+        way["leisure"="fitness_centre"]($minLat,$minLon,$maxLat,$maxLon);
+        node["leisure"="sports_centre"]($minLat,$minLon,$maxLat,$maxLon);
+        way["leisure"="sports_centre"]($minLat,$minLon,$maxLat,$maxLon);
+      );
+      out center;
+      ''';
+
+      // Encode query for URL
+      String encodedQuery = Uri.encodeComponent(query);
+      var url = Uri.parse(
+        'https://overpass-api.de/api/interpreter?data=$encodedQuery',
+      );
+
+      // Make request to Overpass API
+      var response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        List<LeisureCenter> centers = [];
+
+        if (data['elements'] != null) {
+          for (var element in data['elements']) {
+            double elementLat;
+            double elementLon;
+
+            // Handle different element types
+            if (element['type'] == 'node') {
+              elementLat = element['lat'];
+              elementLon = element['lon'];
+            } else if (element['type'] == 'way' && element['center'] != null) {
+              elementLat = element['center']['lat'];
+              elementLon = element['center']['lon'];
+            } else {
+              continue; // Skip elements we can't map
+            }
+
+            String name = element['tags']?['name'] ?? 'Unnamed Leisure Center';
+
+            centers.add(
+              LeisureCenter(
+                id: 'osm_${element['type']}_${element['id']}',
+                name: name,
+                latitude: elementLat,
+                longitude: elementLon,
+                address: element['tags']?['addr:street'] ?? '',
+              ),
+            );
+          }
+        }
+
+        _leisureCenters = centers;
+      }
+
+      notifyListeners();
+    } catch (error) {
+      setError('Failed to load leisure centers: $error');
     } finally {
       setLoading(false);
     }
