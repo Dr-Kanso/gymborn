@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
+import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,6 +18,9 @@ class GymGame extends FlameGame
   // Game entities
   late Player player;
   late DungeonWorld dungeonWorld;
+
+  // Track initialization state
+  bool _isPlayerInitialized = false;
 
   // Game state
   double gameScore = 0;
@@ -51,7 +55,14 @@ class GymGame extends FlameGame
     // Add player
     player = Player(statsProvider: statsProvider);
     player.position = Vector2(size.x / 2, size.y / 2);
+
+    // Set player boundaries
+    const playerPadding = 32.0;
+    player.setBoundaries(playerPadding, size.x - playerPadding,
+        playerPadding, size.y - playerPadding);
+
     add(player);
+    _isPlayerInitialized = true;
 
     // Add dungeon world (which will handle enemies and obstacles)
     dungeonWorld = DungeonWorld(statsProvider: statsProvider);
@@ -96,8 +107,11 @@ class GymGame extends FlameGame
   void update(double dt) {
     super.update(dt);
 
-    // Update camera to follow player
-    camera.moveTo(player.position);
+    // Check if player is initialized before accessing
+    if (_isPlayerInitialized && !gameOver) {
+      // Update camera to follow player
+      camera.moveTo(player.position);
+    }
   }
 
   @override
@@ -105,6 +119,11 @@ class GymGame extends FlameGame
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
+    // Skip key handling if player not initialized yet or game is over
+    if (!_isPlayerInitialized || gameOver) {
+      return KeyEventResult.handled;
+    }
+
     final isKeyDown = event is KeyDownEvent;
 
     Vector2 direction = Vector2.zero();
@@ -143,6 +162,11 @@ class GymGame extends FlameGame
   void onTapDown(TapDownInfo info) {
     super.onTapDown(info);
 
+    // Skip tap handling if player not initialized yet or game is over
+    if (!_isPlayerInitialized || gameOver) {
+      return;
+    }
+
     // Tap to move or attack depending on context
     final worldPosition = camera.viewfinder.globalToLocal(
       info.eventPosition.global,
@@ -162,5 +186,50 @@ class GymGame extends FlameGame
     pauseEngine();
 
     // Game over logic would be implemented here
+  }
+
+  Future<SpriteSheet> loadSpriteSheet() async {
+    final image = await images.load('dungeons/enemy.png');
+    return SpriteSheet(
+      image: image,
+      srcSize: Vector2(900, 900),
+    );
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+
+    // Update camera viewport to match the new screen size
+    camera.viewport = FixedResolutionViewport(resolution: size);
+
+    // Only update player boundaries if player is initialized
+    if (_isPlayerInitialized) {
+      // Set player boundaries
+      const playerPadding = 32.0;
+      player.setBoundaries(playerPadding, size.x - playerPadding,
+          playerPadding, size.y - playerPadding);
+    }
+
+    // Update world boundaries for the dungeon
+    final dungeonWorlds = children.whereType<DungeonWorld>();
+    if (dungeonWorlds.isNotEmpty) {
+      dungeonWorlds.first.resize(size);
+    }
+
+    // Reposition UI elements
+    _repositionUI(size);
+  }
+
+  void _repositionUI(Vector2 gameSize) {
+    // Find score text component
+    final scoreComponents = children.whereType<TextComponent>().where(
+      (component) => component.text.startsWith('Score:'),
+    );
+
+    if (scoreComponents.isNotEmpty) {
+      final scoreComponent = scoreComponents.first;
+      scoreComponent.position = Vector2(20, 20); // Keep in top-left corner
+    }
   }
 }

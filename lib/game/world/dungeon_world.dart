@@ -9,22 +9,25 @@ import '../gym_game.dart';
 class DungeonWorld extends Component with HasGameRef<GymGame> {
   final StatsProvider statsProvider;
   final Random _random = Random();
+  
+  // Store world boundaries to enforce limits
+  late Vector2 worldSize;
+  static const double WORLD_PADDING = 50.0;
 
   DungeonWorld({required this.statsProvider});
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
+    
+    // Set world size based on game viewport with padding
+    worldSize = gameRef.size.clone();
+    
     // Generate the dungeon based on stats
     await _generateDungeon();
   }
 
   Future<void> _generateDungeon() async {
-    // Load enemy sprite
-    final enemySprite = await gameRef.loadSprite('dungeons/enemy.png');
-    final spiderSprite = await gameRef.loadSprite('dungeons/enemy.png');
-
     // Generate enemies based on player stats
     final stats = statsProvider.stats;
     final enemyCount =
@@ -32,26 +35,41 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
 
     // Spawn enemies
     for (int i = 0; i < enemyCount; i++) {
-      // Random position within game bounds
-      final x = _random.nextDouble() * gameRef.size.x;
-      final y = _random.nextDouble() * gameRef.size.y;
+      // Random position within game bounds (respecting padding)
+      final x = WORLD_PADDING + _random.nextDouble() * (worldSize.x - 2 * WORLD_PADDING);
+      final y = WORLD_PADDING + _random.nextDouble() * (worldSize.y - 2 * WORLD_PADDING);
 
-      // Randomly choose enemy type
-      final enemyType = _random.nextBool() ? enemySprite : spiderSprite;
+      // Randomly choose enemy type path (you can add more types later)
+      final enemySpritePath = 'dungeons/enemy.json';
 
       // Create enemy with properties scaled with player stats
       final enemy = Enemy(
-        sprite: enemyType,
+        spritePath: enemySpritePath,
         position: Vector2(x, y),
         size: Vector2(48, 48),
         detectionRadius: 150 + (_random.nextDouble() * 100),
       );
 
+      // Pass world boundaries to enemy for movement constraints
+      enemy.setBoundaries(WORLD_PADDING, worldSize.x - WORLD_PADDING, 
+                         WORLD_PADDING, worldSize.y - WORLD_PADDING);
+      
       gameRef.add(enemy);
     }
 
     // Add walls, obstacles, etc.
     _addObstacles();
+  }
+
+  // Called when game window is resized
+  void resize(Vector2 newSize) {
+    worldSize = newSize.clone();
+    
+    // Update boundaries for all existing enemies
+    for (final enemy in gameRef.children.whereType<Enemy>()) {
+      enemy.setBoundaries(WORLD_PADDING, worldSize.x - WORLD_PADDING,
+                         WORLD_PADDING, worldSize.y - WORLD_PADDING);
+    }
   }
 
   void _addObstacles() {

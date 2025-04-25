@@ -42,16 +42,16 @@ flutter:
     - assets/images/
     - assets/images/characters/
     - assets/images/dungeons/
-    - assets/images/raids/
-    - assets/images/fortress/
-    - assets/images/marketplace/
-    - assets/images/synergy_cards/
-    - assets/images/gym_checkin/
-    - assets/images/ui/
-    - assets/icons/
-    - assets/sfx/
-    - assets/animations/
-    - assets/fonts/
+    #- assets/images/raids/
+    #- assets/images/fortress/
+    #- assets/images/marketplace/
+    #- assets/images/synergy_cards/
+    #- assets/images/gym_checkin/
+    #- assets/images/ui/
+    #- assets/icons/
+    #- assets/sfx/
+    #- assets/animations/
+    #- assets/fonts/
 
   # Commenting out fonts until they are available
   # fonts:

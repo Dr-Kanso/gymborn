@@ -1,156 +1,196 @@
+import 'dart:math';
+
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/sprite.dart';
-import 'package:flutter/material.dart';
 
 import '../../providers/stats_provider.dart';
 import '../gym_game.dart';
 
-class Player extends SpriteAnimationComponent with HasGameReference<GymGame> {
+enum PlayerState {
+  idle,
+  running,
+  attacking,
+}
+
+class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, CollisionCallbacks {
+  // Player properties
   final StatsProvider statsProvider;
-
-  // Player stats
-  late double speed;
-  late double damage;
-  late double health;
-  late double maxHealth;
-
-  // Movement variables
+  double speed = 150;
+  double health = 100;
+  double attackPower = 10;
+  
+  // Movement
   Vector2 movementDirection = Vector2.zero();
-  bool isMoving = false;
-  bool isFacingLeft = false;
-
+  
   // Animations
-  late SpriteAnimation idleAnimation;
-  late SpriteAnimation runAnimation;
-  late SpriteAnimation attackAnimation;
-  bool isAttacking = false;
-
-  Player({required this.statsProvider})
-    : super(size: Vector2(64, 64), anchor: Anchor.center);
-
+  late final SpriteAnimation idleAnimation;
+  late final SpriteAnimation runningAnimation;
+  late final SpriteAnimation attackingAnimation;
+  
+  // State
+  PlayerState _currentState = PlayerState.idle;
+  bool _isAttacking = false;
+  
+  // Screen boundary constraints
+  double minX = 0;
+  double maxX = 0;
+  double minY = 0;
+  double maxY = 0;
+  bool _boundariesSet = false;
+  
+  Player({
+    required this.statsProvider,
+    Vector2? position,
+    Vector2? size,
+  }) : super(
+         position: position ?? Vector2.zero(),
+         size: size ?? Vector2(64, 64),
+         anchor: Anchor.center,
+       );
+       
+  // Set movement boundaries to keep player on screen
+  void setBoundaries(double minX, double maxX, double minY, double maxY) {
+    this.minX = minX;
+    this.maxX = maxX;
+    this.minY = minY;
+    this.maxY = maxY;
+    _boundariesSet = true;
+  }
+  
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    // Initialize stats based on player stats
-    final stats = statsProvider.stats;
-    if (stats != null) {
-      speed = 150 + (stats.strength * 2) + (stats.endurance * 3);
-      damage = 10 + (stats.strength * 1.5);
-      maxHealth = 100 + (stats.endurance * 10) + (stats.recovery * 5);
-      health = maxHealth;
-    } else {
-      // Default values if stats are not loaded
-      speed = 200;
-      damage = 10;
-      maxHealth = 100;
-      health = maxHealth;
-    }
-
-    // Load sprite animations
-    try {
-      // Try to load sprite sheet if available
-      final spriteSheet = await game.images.load('characters/women_idle.png');
-      final spriteSize = Vector2(32, 32); // Adjust based on your sprite sheet
-
-      // Create a sprite sheet
-      final sheet = SpriteSheet(image: spriteSheet, srcSize: spriteSize);
-
-      // Define animations
-      // Note: Indices should be adjusted based on your actual sprite sheet layout
-      idleAnimation = sheet.createAnimation(
-        row: 0,
-        stepTime: 0.2,
-        to: 4,
-      ); // Loop is true by default
-      runAnimation = sheet.createAnimation(
-        row: 1,
-        stepTime: 0.1,
-        to: 6,
-      ); // Loop is true by default
-      attackAnimation = sheet.createAnimation(
-        row: 2,
-        stepTime: 0.05,
-        to: 4,
-        loop: false,
-      ); // Attack animation should not loop
-
-      // Set initial animation
-      animation = idleAnimation;
-    } catch (e) {
-      // Fallback to a simple colored rectangle if animation loading fails
-      debugPrint('Failed to load player animations: $e');
-
-      // Create a colored rectangle as fallback
-      final fallbackPaint = Paint()..color = Colors.blue;
-      add(
-        RectangleComponent(
-          size: size,
-          paint: fallbackPaint,
-          anchor: Anchor.center,
-        ),
-      );
+    
+    // Load all animations from JSON files
+    await _loadAnimations();
+    
+    // Set initial animation
+    animation = idleAnimation;
+    
+    // Add hitbox for collisions
+    add(CircleHitbox(radius: min(size.x, size.y) / 2));
+  }
+  
+  Future<void> _loadAnimations() async {
+    // Load idle animation
+    final idleImage = await gameRef.images.load('characters/women_idle.png');
+    final idleSpriteSheet = SpriteSheet(
+      image: idleImage,
+      srcSize: Vector2(900, 900),
+    );
+    idleAnimation = idleSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 17);
+    
+    // Load running animation
+    final runningImage = await gameRef.images.load('characters/women_running.png');
+    final runningSpriteSheet = SpriteSheet(
+      image: runningImage, 
+      srcSize: Vector2(900, 900),
+    );
+    runningAnimation = runningSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 11);
+    
+    // Load attack animation
+    final attackImage = await gameRef.images.load('characters/women_slashing.png');
+    final attackSpriteSheet = SpriteSheet(
+      image: attackImage,
+      srcSize: Vector2(900, 900),
+    );
+    // Make attack animation not looping
+    attackingAnimation = attackSpriteSheet.createAnimation(row: 0, stepTime: 0.07, to: 11);
+    attackingAnimation.loop = false;
+  }
+  
+  void move(Vector2 direction) {
+    movementDirection = direction;
+    
+    // Update state based on movement
+    if (direction.length > 0 && _currentState != PlayerState.attacking) {
+      _updateState(PlayerState.running);
+    } else if (direction.length == 0 && _currentState != PlayerState.attacking) {
+      _updateState(PlayerState.idle);
     }
   }
-
+  
+  void attack() {
+    if (_currentState != PlayerState.attacking) {
+      _isAttacking = true;
+      _updateState(PlayerState.attacking);
+      
+      // Create a timer to handle animation completion since onComplete isn't available
+      final animDuration = 0.07 * 11; // stepTime * frame count
+      Future.delayed(Duration(milliseconds: (animDuration * 1000).toInt()), () {
+        if (_currentState == PlayerState.attacking) {
+          _isAttacking = false;
+          if (movementDirection.length > 0) {
+            _updateState(PlayerState.running);
+          } else {
+            _updateState(PlayerState.idle);
+          }
+        }
+      });
+    }
+  }
+  
+  void _updateState(PlayerState newState) {
+    if (_currentState == newState) return;
+    
+    _currentState = newState;
+    
+    // Update animation based on state
+    switch (newState) {
+      case PlayerState.idle:
+        animation = idleAnimation;
+        break;
+      case PlayerState.running:
+        animation = runningAnimation;
+        break;
+      case PlayerState.attacking:
+        animation = attackingAnimation;
+        // Restart the animation
+        animationTicker?.reset();
+        break;
+    }
+  }
+  
   @override
   void update(double dt) {
     super.update(dt);
-
-    if (movementDirection != Vector2.zero()) {
-      position += movementDirection.normalized() * speed * dt;
-
-      // Keep player within screen bounds
-      final gameSize = game.size;
-      position.x = position.x.clamp(width / 2, gameSize.x - width / 2);
-      position.y = position.y.clamp(height / 2, gameSize.y - height / 2);
-
-      // Update animation state if not attacking
-      if (animation != runAnimation && !isAttacking) {
-        animation = runAnimation;
-      }
-
-      // Flip sprite based on movement direction
-      if (movementDirection.x < 0) {
-        if (!isFlippedHorizontally) {
-          isFacingLeft = true; // Keep track if needed elsewhere
-          flipHorizontally();
+    
+    if (!_isAttacking) {
+      // Move player if not attacking
+      if (movementDirection.length > 0) {
+        Vector2 newPosition = position + movementDirection * speed * dt;
+        
+        // Enforce boundaries if they're set
+        if (_boundariesSet) {
+          newPosition.x = newPosition.x.clamp(minX, maxX);
+          newPosition.y = newPosition.y.clamp(minY, maxY);
         }
-      } else if (movementDirection.x > 0) {
-        if (isFlippedHorizontally) {
-          isFacingLeft = false; // Keep track if needed elsewhere
-          flipHorizontally(); // Call again to unflip
-        }
+        
+        // Apply the new position
+        position = newPosition;
       }
-    } else if (isMoving == false &&
-        animation != idleAnimation &&
-        !isAttacking) {
-      animation = idleAnimation;
-    }
-
-    // Check if attack animation is complete
-    if (isAttacking &&
-        animation == attackAnimation &&
-        animationTicker!.done()) {
-      isAttacking = false;
-      animation = idleAnimation; // Revert to idle animation after attack
-      // No need to reset idleAnimation here unless it's also non-looping and needs restarting
+      
+      // Flip based on movement direction
+      if (movementDirection.x < 0 && !isFlippedHorizontally) {
+        flipHorizontally();
+      } else if (movementDirection.x > 0 && isFlippedHorizontally) {
+        flipHorizontally(); // Unflip if moving right and currently flipped
+      }
     }
   }
-
-  void move(Vector2 direction) {
-    movementDirection = direction;
-    isMoving = direction != Vector2.zero();
+  
+  void takeDamage(double amount) {
+    health -= amount;
+    if (health <= 0) {
+      die();
+    } else {
+      // Flash red or show damage effect
+    }
   }
-
-  void attack() {
-    // Play attack animation
-    isAttacking = true;
-    animation = attackAnimation;
-    animationTicker
-        ?.reset(); // Reset the animation ticker to start from the beginning
-
-    // Attack logic would be implemented here
-    // e.g., damage enemies in range, etc.
+  
+  void die() {
+    // Game over logic
+    gameRef.endGame();
   }
 }

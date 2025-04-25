@@ -10,6 +10,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/game/game_screen.dart';
 import 'screens/gym/gym_checkin_screen.dart';
+import 'screens/dungeon/dungeon_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,15 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/gym-checkin': (context) => const GymCheckinScreen(),
         '/game': (context) => const GameScreen(),
+        '/dungeon': (context) => const DungeonScreen(),
+      },
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(title: const Text('Not Found')),
+            body: const Center(child: Text('Page not found')),
+          ),
+        );
       },
     );
   }
