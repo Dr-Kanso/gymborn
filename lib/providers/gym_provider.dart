@@ -1,9 +1,13 @@
-import 'dart:math';
-
-import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/gym_checkin_status.dart';
+import 'package:http/http.dart' as http;
+import 'dart:math';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 import '../models/user.dart';
 import '../services/gym_checkin_service.dart';
@@ -52,6 +56,9 @@ class GymProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Store the checkin status for each gym
+  final Map<String, GymCheckinStatus> _checkinStatus = {};
+
   List<Gym> get userGyms => _userGyms;
   List<Gym> get nearbyGyms => _nearbyGyms;
   List<LeisureCenter> get leisureCenters => _leisureCenters;
@@ -60,19 +67,115 @@ class GymProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Initialize gym data for user
-  Future<void> initGyms(GymBornUser user) async {
+  // Getter for checkin status
+  Map<String, GymCheckinStatus> get checkinStatus => _checkinStatus;
+
+  // Initialize gyms and load saved check-ins
+  Future<void> initGyms(User user) async {
     setLoading(true);
     setError(null);
 
     try {
-      _userGyms = await _gymCheckinService.getUserGyms(user.gymIds);
-      notifyListeners();
+      // Fetch GymBornUser data first
+      GymBornUser? gymBornUser = await _firestoreService.getUserData(user.uid);
+
+      if (gymBornUser != null) {
+        _userGyms = await _gymCheckinService.getUserGyms(gymBornUser.gymIds);
+        notifyListeners();
+      } else {
+        setError('Failed to load user data.');
+        _userGyms = []; // Clear gyms if user data fails
+      }
     } catch (error) {
       setError('Failed to load your gyms: $error');
     } finally {
       setLoading(false);
     }
+
+    // Load saved check-in statuses
+    await loadCheckinStatuses(user.uid);
+
+    notifyListeners();
+  }
+
+  // Load check-in statuses from SharedPreferences
+  Future<void> loadCheckinStatuses(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final checkins = prefs.getString('gym_checkins_$userId');
+
+    if (checkins != null) {
+      final Map<String, dynamic> checkinData = json.decode(checkins);
+
+      checkinData.forEach((gymId, data) {
+        _checkinStatus[gymId] = GymCheckinStatus.fromJson(data);
+      });
+    }
+  }
+
+  // Save check-in status to SharedPreferences
+  Future<void> saveCheckinStatus(GymCheckinStatus status) async {
+    // Update in-memory status
+    _checkinStatus[status.gymId] = status;
+
+    // Save to shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    final userId = status.userId;
+
+    // Get existing data
+    final checkins = prefs.getString('gym_checkins_$userId') ?? '{}';
+    final Map<String, dynamic> checkinData = json.decode(checkins);
+
+    // Update with new data
+    checkinData[status.gymId] = status.toJson();
+
+    // Save back to shared preferences
+    await prefs.setString('gym_checkins_$userId', json.encode(checkinData));
+
+    notifyListeners();
+  }
+
+  // Check if user can check in to a gym today
+  bool canCheckInToday(String userId, String gymId) {
+    // If no check-in record exists, user can check in
+    if (!_checkinStatus.containsKey(gymId)) return true;
+
+    // Check if the last check-in is still valid for today
+    return !_checkinStatus[gymId]!.isValidForToday();
+  }
+
+  // Record a check-in for today
+  Future<bool> checkIn(String userId, String gymId) async {
+    // Only allow check-in if user can check in today
+    if (!canCheckInToday(userId, gymId)) return false;
+
+    // Create new check-in status
+    final status = GymCheckinStatus(
+      userId: userId,
+      gymId: gymId,
+      lastCheckin: DateTime.now().toUtc(),
+    );
+
+    // Save check-in status
+    await saveCheckinStatus(status);
+
+    return true;
+  }
+
+  // Get formatted time until next check-in is available
+  String getTimeUntilNextCheckin(String gymId) {
+    if (!_checkinStatus.containsKey(gymId)) return 'Now';
+
+    if (!_checkinStatus[gymId]!.isValidForToday()) return 'Now';
+
+    // Calculate time until midnight GMT
+    final now = DateTime.now().toUtc();
+    final midnight = DateTime.utc(now.year, now.month, now.day + 1);
+    final duration = midnight.difference(now);
+
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+
+    return '$hours hours, $minutes minutes';
   }
 
   // Load nearby gyms
@@ -81,10 +184,22 @@ class GymProvider with ChangeNotifier {
     setError(null);
 
     try {
-      _nearbyGyms = await _gymCheckinService.getNearbyGyms(radiusInMeters);
+      // Add timeout to prevent hanging
+      _nearbyGyms = await _gymCheckinService
+          .getNearbyGyms(radiusInMeters)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              debugPrint('Nearby gyms request timed out');
+              return []; // Return empty list on timeout
+            },
+          );
       notifyListeners();
     } catch (error) {
-      setError('Failed to load nearby gyms: $error');
+      debugPrint('Failed to load nearby gyms: $error');
+      setError('Failed to load nearby gyms. Please try again.');
+      _nearbyGyms = []; // Ensure we have a valid list even on error
+      notifyListeners();
     } finally {
       setLoading(false);
     }

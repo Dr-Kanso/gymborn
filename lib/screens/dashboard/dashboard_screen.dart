@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../components/custom_button.dart';
@@ -32,9 +33,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final statsProvider = Provider.of<StatsProvider>(context, listen: false);
     final gymProvider = Provider.of<GymProvider>(context, listen: false);
 
-    if (authProvider.user != null) {
-      statsProvider.initStats(authProvider.user!);
-      await gymProvider.initGyms(authProvider.user!);
+    try {
+      if (authProvider.user != null) {
+        // Pass authProvider.user directly to statsProvider as it expects GymBornUser
+        statsProvider.initStats(authProvider.user!);
+
+        // Use FirebaseAuth.instance.currentUser for gymProvider which expects Firebase User
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          await gymProvider.initGyms(firebaseUser);
+        } else {
+          // Handle case where Firebase user might not be ready yet
+          debugPrint('Firebase user not available yet');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing providers: $e');
+      // Handle initialization errors to prevent app from getting stuck
     }
   }
 
@@ -421,12 +436,124 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDungeonsTab() {
-    return Center(
-      child: TextButton(
-        child: const Text('Go to Dungeons Screen'),
-        onPressed: () {
-          Navigator.pushNamed(context, '/dungeon');
-        },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Available Dungeons',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: kTextColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Dungeon Adventure Card (Flame Game)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/game'),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 160,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      image: const DecorationImage(
+                        image: AssetImage(
+                          'assets/images/dungeons/dungeon_entrance.png',
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'NEW!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dungeon Adventure',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: kTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Test your skills in this adventure game! Navigate through the dungeon, defeat enemies, and collect rewards.',
+                          style: TextStyle(color: kLightTextColor),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Recommended for STR: 10+',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: kPrimaryColor,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Text(
+                                'PLAY',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ...existing code for other dungeon cards...
+        ],
       ),
     );
   }

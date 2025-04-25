@@ -11,7 +11,7 @@ class AuthProvider with ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
 
   GymBornUser? _user;
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _errorMessage;
 
   GymBornUser? get user => _user;
@@ -20,25 +20,26 @@ class AuthProvider with ChangeNotifier {
   bool get isAuth => _user != null;
 
   AuthProvider() {
-    // Initialize by checking current user
-    _initCurrentUser();
+    // Check if the user is already signed in
+    _initializeAuthState();
   }
 
-  // Initialize app with current user if logged in
-  Future<void> _initCurrentUser() async {
-    setLoading(true);
+  Future<void> _initializeAuthState() async {
+    _isLoading = true;
+    notifyListeners();
 
     try {
-      User? firebaseUser = _authService.currentUser;
-      if (firebaseUser != null) {
-        // Get user data from Firestore
-        _user = await _firestoreService.getUserData(firebaseUser.uid);
+      // Check if user is signed in with Firebase
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        // Fetch user data from Firestore
+        _user = await _firestoreService.getUserData(currentUser.uid);
       }
-    } catch (error) {
-      print('Error initializing user: $error');
-      setError('Failed to initialize user data.');
+    } catch (e) {
+      debugPrint('Error initializing auth state: $e');
     } finally {
-      setLoading(false);
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

@@ -71,6 +71,9 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
         setState(() {
           _isLoading = false;
         });
+
+        // Provide alternative with default location to avoid app being stuck
+        _handleLocationFallback();
         return;
       }
 
@@ -79,38 +82,57 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          // Permissions are denied, next time you could try
-          // requesting permissions again (this is also where
-          // Android's shouldShowRequestPermissionRationale
-          // returned true would be handled).
+          // Handle denied permissions with fallback
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are denied')),
+            const SnackBar(
+              content: Text('Using default location. Location access denied.'),
+            ),
           );
           setState(() {
             _isLoading = false;
           });
+          _handleLocationFallback();
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // Permissions are denied forever, handle appropriately.
+        // Use fallback for permanently denied permissions
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Location permissions are permanently denied, please enable from settings',
+              'Using default location. Please enable location in settings for better accuracy.',
             ),
           ),
         );
         setState(() {
           _isLoading = false;
         });
+        _handleLocationFallback();
         return;
       }
 
-      // When we reach here, permissions are granted and we can
-      // continue accessing the position of the device.
-      Position position = await Geolocator.getCurrentPosition();
+      // Add timeout to prevent infinite waiting
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 5),
+      ).catchError((error) {
+        debugPrint('Geolocator error: $error');
+        _handleLocationFallback();
+        return Position(
+          longitude: 0,
+          latitude: 0,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+      });
+
       setState(() {
         _currentPosition = position;
         _isLoading = false;
@@ -121,31 +143,83 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
         _updateMarkers();
       }
     } catch (e) {
-      print('Error getting position: $e');
+      debugPrint('Error getting position: $e');
       setState(() {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+      // Handle error with fallback
+      _handleLocationFallback();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Using default location. Error: ${e.toString().split('\n').first}',
+          ),
+        ),
+      );
     }
   }
 
-  Future<void> _loadNearbyGyms() async {
-    final gymProvider = Provider.of<GymProvider>(context, listen: false);
-    await gymProvider.loadNearbyGyms(5000); // 5km radius
+  void _handleLocationFallback() {
+    // Default to a fallback position (you could use user's last known position or a city center)
+    final fallbackPosition = Position(
+      longitude: 0.0,
+      latitude: 51.5074, // London coordinates as fallback
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      altitudeAccuracy: 0,
+      headingAccuracy: 0,
+    );
 
-    // Load leisure centers if position is available
-    if (_currentPosition != null) {
+    setState(() {
+      _currentPosition = fallbackPosition;
+    });
+
+    if (_mapController != null) {
+      _mapController!.move(
+        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        14,
+      );
+    }
+
+    // Still try to load nearby gyms with default location
+    _loadNearbyGyms();
+  }
+
+  Future<void> _loadNearbyGyms() async {
+    if (_currentPosition == null) {
+      debugPrint('Cannot load nearby gyms: Position is null');
+      return;
+    }
+
+    final gymProvider = Provider.of<GymProvider>(context, listen: false);
+
+    try {
+      await gymProvider.loadNearbyGyms(5000); // 5km radius
+
+      // Load leisure centers
       await gymProvider.loadLeisureCenters(
         _currentPosition!.latitude,
         _currentPosition!.longitude,
         5000, // 5km radius
       );
-    }
 
-    _updateMarkers();
+      _updateMarkers();
+    } catch (e) {
+      debugPrint('Error loading nearby gyms: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to load nearby gyms: ${e.toString().split('\n').first}',
+          ),
+        ),
+      );
+    }
   }
 
   void _updateMarkers() {
