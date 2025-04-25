@@ -13,7 +13,7 @@ enum PlayerState {
   attacking,
 }
 
-class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, CollisionCallbacks {
+class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, CollisionCallbacks {
   // Player properties
   final StatsProvider statsProvider;
   double speed = 150;
@@ -74,7 +74,7 @@ class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, Collisio
   
   Future<void> _loadAnimations() async {
     // Load idle animation
-    final idleImage = await gameRef.images.load('characters/women_idle.png');
+    final idleImage = await game.images.load('characters/women_idle.png');
     final idleSpriteSheet = SpriteSheet(
       image: idleImage,
       srcSize: Vector2(900, 900),
@@ -82,7 +82,7 @@ class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, Collisio
     idleAnimation = idleSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 17);
     
     // Load running animation
-    final runningImage = await gameRef.images.load('characters/women_running.png');
+    final runningImage = await game.images.load('characters/women_running.png');
     final runningSpriteSheet = SpriteSheet(
       image: runningImage, 
       srcSize: Vector2(900, 900),
@@ -90,7 +90,7 @@ class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, Collisio
     runningAnimation = runningSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 11);
     
     // Load attack animation
-    final attackImage = await gameRef.images.load('characters/women_slashing.png');
+    final attackImage = await game.images.load('characters/women_slashing.png');
     final attackSpriteSheet = SpriteSheet(
       image: attackImage,
       srcSize: Vector2(900, 900),
@@ -191,6 +191,6 @@ class Player extends SpriteAnimationComponent with HasGameRef<GymGame>, Collisio
   
   void die() {
     // Game over logic
-    gameRef.endGame();
+    game.endGame();
   }
 }

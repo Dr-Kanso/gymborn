@@ -1,9 +1,10 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:gymborn_app/game/gym_game.dart';
 import 'entities/enemy.dart';
 
-class EnemyController extends Component with HasGameRef {
+class EnemyController extends Component with HasGameReference<GymGame> {
   final Enemy enemy;
   final Random _random = Random();
   double _actionTimer = 0;

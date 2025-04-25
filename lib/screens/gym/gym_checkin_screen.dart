@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../providers/location_provider.dart';
-import '../../providers/gym_provider.dart';
 
 class GymCheckinScreen extends StatefulWidget {
   const GymCheckinScreen({super.key});
@@ -27,12 +26,14 @@ class _GymCheckinScreenState extends State<GymCheckinScreen> {
   
   Future<void> _initLocationAndMap() async {
     try {
+      // Capture the provider reference before any async operations
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      
       // Request location permission first
       final status = await Permission.location.request();
       
       if (status.isGranted) {
-        // Get location from provider
-        final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+        // Get location from provider (already captured before await)
         await locationProvider.getCurrentLocation();
         
         if (!mounted) return;
@@ -122,10 +123,10 @@ class _GymCheckinScreenState extends State<GymCheckinScreen> {
             Expanded(
               child: FlutterMap(
                 options: MapOptions(
-                  center: LatLng(currentLocation.latitude, currentLocation.longitude),
-                  zoom: 15.0,
+                  initialCenter: LatLng(currentLocation.latitude, currentLocation.longitude),
+                  initialZoom: 15.0,
                 ),
-                nonRotatedChildren: [
+                children: [
                   TileLayer(
                     urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     subdomains: const ['a', 'b', 'c'],
@@ -141,7 +142,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen> {
                       ),
                     ],
                   ),
-                ], children: [],
+                ],
               ),
             ),
             Padding(
@@ -166,9 +167,11 @@ class _GymCheckinScreenState extends State<GymCheckinScreen> {
     });
     
     try {
-      Provider.of<GymProvider>(context, listen: false);
+      // Store context-dependent providers locally before async operation
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       final currentLocation = locationProvider.currentLocation;
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       
       bool success = false;
       if (currentLocation != null) {
@@ -178,9 +181,9 @@ class _GymCheckinScreenState extends State<GymCheckinScreen> {
       if (!mounted) return;
       
       if (success) {
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        navigator.pushReplacementNamed('/dashboard');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('No gym found nearby. Please try again when you\'re at a gym.')),
         );
         setState(() {

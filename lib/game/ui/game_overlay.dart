@@ -1,7 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:gymborn_app/game/gym_game.dart';
 
-class GameOverlay extends PositionComponent with HasGameRef {
+class GameOverlay extends Component with HasGameReference<GymGame> {
   // UI elements
   final TextPaint _scorePaint = TextPaint(
     style: const TextStyle(

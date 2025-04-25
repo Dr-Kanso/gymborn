@@ -72,7 +72,7 @@ class _GameScreenState extends State<GameScreen> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: kPrimaryColor.withOpacity(0.7),
+                          color: kPrimaryColor.withAlpha((0.7 * 255).round()),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -129,7 +129,7 @@ class _GameScreenState extends State<GameScreen> {
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            color: kPrimaryColor.withOpacity(0.2),
+            color: kPrimaryColor.withAlpha((0.2 * 255).round()),
             shape: BoxShape.circle,
           ),
           child: GestureDetector(
@@ -165,7 +165,7 @@ class _GameScreenState extends State<GameScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: kPrimaryColor.withOpacity(0.8),
+                  color: kPrimaryColor.withAlpha((0.8 * 255).round()),
                   shape: BoxShape.circle,
                 ),
                 margin: EdgeInsets.only(

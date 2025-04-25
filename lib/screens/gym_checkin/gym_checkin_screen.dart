@@ -114,8 +114,10 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
 
       // Add timeout to prevent infinite waiting
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
       ).catchError((error) {
         debugPrint('Geolocator error: $error');
         _handleLocationFallback();

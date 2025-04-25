@@ -1,18 +1,19 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../providers/stats_provider.dart';
 import '../entities/enemy.dart';
 import '../gym_game.dart';
 
-class DungeonWorld extends Component with HasGameRef<GymGame> {
+class DungeonWorld extends Component with HasGameReference<GymGame> {
   final StatsProvider statsProvider;
   final Random _random = Random();
   
   // Store world boundaries to enforce limits
   late Vector2 worldSize;
-  static const double WORLD_PADDING = 50.0;
+  static const double worldPadding = 50.0;
 
   DungeonWorld({required this.statsProvider});
 
@@ -22,12 +23,12 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
       await super.onLoad();
       
       // Set world size based on game viewport with padding
-      worldSize = gameRef.size.clone();
+      worldSize = game.size.clone();
       
       // Generate the dungeon based on stats
       await _generateDungeon();
     } catch (e) {
-      print('Error loading dungeon world: $e');
+      debugPrint('Error loading dungeon world: $e');
       // Handle error state appropriately
     }
   }
@@ -41,8 +42,8 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
     // Spawn enemies
     for (int i = 0; i < enemyCount; i++) {
       // Random position within game bounds (respecting padding)
-      final x = WORLD_PADDING + _random.nextDouble() * (worldSize.x - 2 * WORLD_PADDING);
-      final y = WORLD_PADDING + _random.nextDouble() * (worldSize.y - 2 * WORLD_PADDING);
+      final x = worldPadding + _random.nextDouble() * (worldSize.x - 2 * worldPadding);
+      final y = worldPadding + _random.nextDouble() * (worldSize.y - 2 * worldPadding);
 
       // Create enemy
       final enemy = Enemy(
@@ -54,10 +55,10 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
       enemy.detectionRadius = 150 + (_random.nextDouble() * 100);
 
       // Pass world boundaries to enemy for movement constraints
-      enemy.setBoundaries(WORLD_PADDING, worldSize.x - WORLD_PADDING, 
-                         WORLD_PADDING, worldSize.y - WORLD_PADDING);
+      enemy.setBoundaries(worldPadding, worldSize.x - worldPadding, 
+                         worldPadding, worldSize.y - worldPadding);
       
-      gameRef.add(enemy);
+      game.add(enemy);
     }
 
     // Add walls, obstacles, etc.
@@ -69,9 +70,9 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
     worldSize = newSize.clone();
     
     // Update boundaries for all existing enemies
-    for (final enemy in gameRef.children.whereType<Enemy>()) {
-      enemy.setBoundaries(WORLD_PADDING, worldSize.x - WORLD_PADDING,
-                         WORLD_PADDING, worldSize.y - WORLD_PADDING);
+    for (final enemy in game.children.whereType<Enemy>()) {
+      enemy.setBoundaries(worldPadding, worldSize.x - worldPadding,
+                         worldPadding, worldSize.y - worldPadding);
     }
   }
 

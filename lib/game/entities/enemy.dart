@@ -3,7 +3,7 @@ import 'package:flame/sprite.dart';
 
 enum EnemyState { idle, hurt, running, slashing }
 
-class Enemy extends SpriteAnimationComponent with HasGameRef {
+class Enemy extends SpriteAnimationComponent with HasGameReference {
   // Animation properties
   late Map<EnemyState, SpriteAnimation> animations;
   EnemyState currentState = EnemyState.idle;
@@ -38,22 +38,22 @@ class Enemy extends SpriteAnimationComponent with HasGameRef {
   Future<void> _loadAnimations() async {
     // Load all animations from sprite sheets
     final idleSpriteSheet = SpriteSheet(
-      image: await gameRef.images.load('dungeons/enemy.png'),
+      image: await game.images.load('dungeons/enemy.png'),
       srcSize: Vector2(900, 900),
     );
 
     final hurtSpriteSheet = SpriteSheet(
-      image: await gameRef.images.load('dungeons/enemy_hurt.png'),
+      image: await game.images.load('dungeons/enemy_hurt.png'),
       srcSize: Vector2(900, 900),
     );
 
     final slashingSpriteSheet = SpriteSheet(
-      image: await gameRef.images.load('dungeons/enemy_slashing.png'),
+      image: await game.images.load('dungeons/enemy_slashing.png'),
       srcSize: Vector2(900, 900),
     );
 
     final runningSpriteSheet = SpriteSheet(
-      image: await gameRef.images.load('dungeons/enemy_running.png'),
+      image: await game.images.load('dungeons/enemy_running.png'),
       srcSize: Vector2(900, 900),
     );
 
