@@ -1,160 +1,153 @@
-import 'dart:math';
-
-import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/sprite.dart';
 
-import '../gym_game.dart';
-import 'player.dart';
+enum EnemyState { idle, hurt, running, slashing }
 
-class Enemy extends SpriteAnimationComponent
-    with HasGameRef<GymGame>, CollisionCallbacks {
-  // Enemy properties
-  double speed = 80;
-  double health = 50;
-  double damage = 5;
-
-  // Movement
-  Vector2 movementDirection = Vector2.zero();
-  bool isActive = true;
-
-  // Target tracking
-  Player? _player;
-  final double detectionRadius;
-  final double attackRadius;
+class Enemy extends SpriteAnimationComponent with HasGameRef {
+  // Animation properties
+  late Map<EnemyState, SpriteAnimation> animations;
+  EnemyState currentState = EnemyState.idle;
   
-  // Animation states
-  late final SpriteAnimation idleAnimation;
-  final String spritePath;
-  
-  // Screen boundary constraints
-  double minX = 0;
-  double maxX = 0;
-  double minY = 0;
-  double maxY = 0;
-  bool _boundariesSet = false;
+  // Track non-looping animations current frame
+  final Map<EnemyState, bool> _nonLoopingStates = {
+    EnemyState.hurt: true,
+    EnemyState.slashing: true,
+  };
 
-  Enemy({
-    required this.spritePath,
-    required Vector2 position,
-    required Vector2 size,
-    this.detectionRadius = 200,
-    this.attackRadius = 30,
-  }) : super(
-         position: position,
-         size: size,
-         anchor: Anchor.center,
-       );
-       
-  // Set movement boundaries to keep enemy on screen
-  void setBoundaries(double minX, double maxX, double minY, double maxY) {
-    this.minX = minX;
-    this.maxX = maxX;
-    this.minY = minY;
-    this.maxY = maxY;
-    _boundariesSet = true;
-  }
+  // Combat properties
+  double health = 100;
+  double maxHealth = 100;
+  bool isDead = false;
+  
+  // Movement boundaries
+  double _minX = 0;
+  double _maxX = 0;
+  double _minY = 0;
+  double _maxY = 0;
+  double detectionRadius = 150;
+
+  Enemy({required Vector2 position, required Vector2 size}) : super(position: position, size: size);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    // Load sprite sheet from json file
-    final spriteSheet = await gameRef.loadSpriteSheet();
-    
-    // Create idle animation
-    idleAnimation = spriteSheet.createAnimation(
-      row: 0, 
-      stepTime: 0.1,
-      to: 17, // Number of frames in the idle animation
-    );
-    
-    // Set current animation
-    animation = idleAnimation;
-
-    // Add hitbox for collisions
-    add(CircleHitbox(radius: min(size.x, size.y) / 2));
-
-    // Try to find player, but don't fail if not found yet
-    _findPlayer();
+    await _loadAnimations();
+    animation = animations[currentState];
   }
-  
-  void _findPlayer() {
-    final players = gameRef.children.whereType<Player>();
-    if (players.isNotEmpty) {
-      _player = players.first;
-    }
+
+  Future<void> _loadAnimations() async {
+    // Load all animations from sprite sheets
+    final idleSpriteSheet = SpriteSheet(
+      image: await gameRef.images.load('dungeons/enemy.png'),
+      srcSize: Vector2(900, 900),
+    );
+
+    final hurtSpriteSheet = SpriteSheet(
+      image: await gameRef.images.load('dungeons/enemy_hurt.png'),
+      srcSize: Vector2(900, 900),
+    );
+
+    final slashingSpriteSheet = SpriteSheet(
+      image: await gameRef.images.load('dungeons/enemy_slashing.png'),
+      srcSize: Vector2(900, 900),
+    );
+
+    final runningSpriteSheet = SpriteSheet(
+      image: await gameRef.images.load('dungeons/enemy_running.png'),
+      srcSize: Vector2(900, 900),
+    );
+
+    // Create animations from sprite sheets
+    animations = {
+      EnemyState.idle: idleSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1,
+        to: 17, // Based on enemy.json having 18 frames (0-17)
+      ),
+      EnemyState.hurt: hurtSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1,
+        to: 11, // Based on enemy_hurt.json having 12 frames (0-11)
+        loop: false,
+      ),
+      EnemyState.slashing: slashingSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1,
+        to: 11, // Based on enemy_slashing.json having 12 frames (0-11)
+        loop: false,
+      ),
+      EnemyState.running: runningSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1,
+        to: 10, // Based on enemy_running.json having 11 frames (0-10)
+      ),
+    };
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-
-    if (!isActive) return;
     
-    // Try to get player reference if we don't have it yet
-    if (_player == null) {
-      _findPlayer();
-      return; // Skip this update if player still not found
+    // Handle animation completion for non-looping animations
+    if (_nonLoopingStates[currentState] == true &&
+        animationTicker != null &&
+        animationTicker!.isLastFrame &&
+        animation != null && // Ensure animation is not null
+        !animation!.loop) { // Access loop from the animation itself
+      _returnToIdle();
     }
+    
+    // Enforce movement boundaries
+    if (position.x < _minX) position.x = _minX;
+    if (position.x > _maxX) position.x = _maxX;
+    if (position.y < _minY) position.y = _minY;
+    if (position.y > _maxY) position.y = _maxY;
+  }
 
-    // Calculate distance to player
-    final distanceToPlayer = position.distanceTo(_player!.position);
+  void setBoundaries(double minX, double maxX, double minY, double maxY) {
+    _minX = minX;
+    _maxX = maxX;
+    _minY = minY;
+    _maxY = maxY;
+  }
 
-    // Chase player when in detection radius
-    if (distanceToPlayer < detectionRadius) {
-      // Calculate direction to player
-      movementDirection = (_player!.position - position).normalized();
-      
-      // Calculate new position
-      Vector2 newPosition = position + movementDirection * speed * dt;
-      
-      // Enforce boundaries if they're set
-      if (_boundariesSet) {
-        newPosition.x = newPosition.x.clamp(minX, maxX);
-        newPosition.y = newPosition.y.clamp(minY, maxY);
-      }
-      
-      // Apply the new position
-      position = newPosition;
-
-      // Attack player when in range
-      if (distanceToPlayer < attackRadius) {
-        // Attack logic
-        attackPlayer();
-      }
-    } else {
-      movementDirection = Vector2.zero();
-    }
-
-    // Flip based on movement direction
-    if (movementDirection.x < 0 && !isFlippedHorizontally) {
-      flipHorizontally();
-    } else if (movementDirection.x > 0 && isFlippedHorizontally) {
-      flipHorizontally(); // Unflip if moving right and currently flipped
+  void changeState(EnemyState newState) {
+    if (isDead && newState != EnemyState.hurt) return;
+    
+    currentState = newState;
+    animation = animations[newState];
+    
+    // Set animation to first frame
+    if (animation != null) {
+      animationTicker?.reset();
     }
   }
 
-  void attackPlayer() {
-    // Attack cooldown logic would go here
-    // Damage player
-    // TODO: Play attack animation when it's available
+  void _returnToIdle() {
+    if (!isDead) {
+      changeState(EnemyState.idle);
+    }
   }
 
   void takeDamage(double amount) {
+    if (isDead) return;
+    
     health -= amount;
     if (health <= 0) {
-      die();
-    } else {
-      // Flash red or show damage effect
+      health = 0;
+      isDead = true;
     }
+    
+    changeState(EnemyState.hurt);
   }
 
-  void die() {
-    isActive = false;
-    // Add death animation
-    gameRef.remove(this);
+  void startRunning() {
+    if (isDead) return;
+    changeState(EnemyState.running);
+  }
 
-    // Award points/experience
-    gameRef.gameScore += 10;
+  void attack() {
+    if (isDead) return;
+    changeState(EnemyState.slashing);
   }
 }

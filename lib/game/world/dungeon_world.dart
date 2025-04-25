@@ -18,13 +18,18 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
 
   @override
   Future<void> onLoad() async {
-    await super.onLoad();
-    
-    // Set world size based on game viewport with padding
-    worldSize = gameRef.size.clone();
-    
-    // Generate the dungeon based on stats
-    await _generateDungeon();
+    try {
+      await super.onLoad();
+      
+      // Set world size based on game viewport with padding
+      worldSize = gameRef.size.clone();
+      
+      // Generate the dungeon based on stats
+      await _generateDungeon();
+    } catch (e) {
+      print('Error loading dungeon world: $e');
+      // Handle error state appropriately
+    }
   }
 
   Future<void> _generateDungeon() async {
@@ -39,16 +44,14 @@ class DungeonWorld extends Component with HasGameRef<GymGame> {
       final x = WORLD_PADDING + _random.nextDouble() * (worldSize.x - 2 * WORLD_PADDING);
       final y = WORLD_PADDING + _random.nextDouble() * (worldSize.y - 2 * WORLD_PADDING);
 
-      // Randomly choose enemy type path (you can add more types later)
-      final enemySpritePath = 'dungeons/enemy.json';
-
-      // Create enemy with properties scaled with player stats
+      // Create enemy
       final enemy = Enemy(
-        spritePath: enemySpritePath,
         position: Vector2(x, y),
         size: Vector2(48, 48),
-        detectionRadius: 150 + (_random.nextDouble() * 100),
       );
+      
+      // Set detection radius (can be accessed from enemy.detectionRadius now)
+      enemy.detectionRadius = 150 + (_random.nextDouble() * 100);
 
       // Pass world boundaries to enemy for movement constraints
       enemy.setBoundaries(WORLD_PADDING, worldSize.x - WORLD_PADDING, 
