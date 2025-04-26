@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import for orientation control
 import 'package:provider/provider.dart';
 
 import '../../game/gym_game.dart';
@@ -19,7 +20,22 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    // Force landscape orientation when entering game
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _setupGame();
+  }
+
+  @override
+  void dispose() {
+    // Force portrait orientation when leaving the game
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
   }
 
   void _setupGame() {
@@ -39,17 +55,16 @@ class _GameScreenState extends State<GameScreen> {
           Expanded(
             child: GameWidget<GymGame>(
               game: _game,
-              loadingBuilder:
-                  (context) => const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Loading Dungeon...'),
-                      ],
-                    ),
-                  ),
+              loadingBuilder: (context) => const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading Dungeon...'),
+                  ],
+                ),
+              ),
               overlayBuilderMap: {
                 'touchControls': (context, game) {
                   return Positioned(
@@ -91,7 +106,7 @@ class _GameScreenState extends State<GameScreen> {
             padding: const EdgeInsets.all(16),
             color: kBackgroundColor,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'Dungeon Level 1',
@@ -100,16 +115,6 @@ class _GameScreenState extends State<GameScreen> {
                     fontWeight: FontWeight.bold,
                     color: kTextColor,
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // Pause or access game menu
-                    showGameMenu(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                  ),
-                  child: const Text('Menu'),
                 ),
               ],
             ),
@@ -174,55 +179,6 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  void showGameMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Game Menu',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: kTextColor,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: Icon(Icons.refresh, color: kPrimaryColor),
-                title: const Text('Restart Level'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Restart level logic
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.settings, color: kPrimaryColor),
-                title: const Text('Game Settings'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Open game settings
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.exit_to_app, color: kPrimaryColor),
-                title: const Text('Exit Game'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
           ),
         );
       },

@@ -41,14 +41,39 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
     _tabController = TabController(length: 2, vsync: this);
     _getCurrentLocation();
     _loadNearbyGyms();
+
+    // Add listener to refresh markers when tab changes
+    _tabController.addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _nameController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  // Listen for tab changes to update markers
+  void _handleTabChange() {
+    if (_tabController.index == 1 && !_isLoading && _currentPosition != null) {
+      // When switching to Find Gyms tab, refresh the data
+      _refreshGymData();
+    }
+  }
+
+  // Refresh gym data and markers
+  Future<void> _refreshGymData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await _loadNearbyGyms();
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -203,6 +228,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
 
     try {
       await gymProvider.loadNearbyGyms(5000); // 5km radius
+      debugPrint('Loaded ${gymProvider.nearbyGyms.length} nearby gyms');
 
       // Load leisure centers
       await gymProvider.loadLeisureCenters(
@@ -211,13 +237,16 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
         5000, // 5km radius
       );
 
+      debugPrint('Loaded ${gymProvider.leisureCenters.length} leisure centers');
+
+      // Force update markers after loading
       _updateMarkers();
     } catch (e) {
-      debugPrint('Error loading nearby gyms: $e');
+      debugPrint('Error loading nearby gyms or leisure centers: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to load nearby gyms: ${e.toString().split('\n').first}',
+            'Failed to load nearby locations: ${e.toString().split('\n').first}',
           ),
         ),
       );
@@ -236,31 +265,51 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
         width: 40.0,
         height: 40.0,
         point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-        child: const Icon(
-          Icons.location_history,
-          color: Colors.blue,
-          size: 40.0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.blue.withAlpha((0.7 * 255).round()),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.location_history,
+            color: Colors.white,
+            size: 40.0,
+          ),
         ),
       ),
     );
 
-    // User's registered gyms
+    // User's registered gyms with improved visibility
     for (var gym in gymProvider.userGyms) {
       markers.add(
         Marker(
           width: 40.0,
           height: 40.0,
           point: gym.latLng,
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.purple,
-            size: 40.0,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedGym = gym;
+                _selectedLeisureCenter = null;
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.purple.withAlpha((0.7 * 255).round()),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.fitness_center,
+                color: Colors.white,
+                size: 40.0,
+              ),
+            ),
           ),
         ),
       );
     }
 
-    // Nearby gyms
+    // Nearby gyms with improved visibility
     for (var gym in gymProvider.nearbyGyms) {
       // Skip if already in user gyms
       if (gymProvider.userGyms.any((userGym) => userGym.id == gym.id)) continue;
@@ -270,42 +319,90 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
           width: 40.0,
           height: 40.0,
           point: gym.latLng,
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.red,
-            size: 40.0,
-          ),
-        ),
-      );
-    }
-
-    // Leisure centers
-    for (var center in gymProvider.leisureCenters) {
-      // Skip if this center is already a registered gym
-      if (gymProvider.userGyms.any((gym) => gym.id == center.id)) continue;
-
-      markers.add(
-        Marker(
-          width: 40.0,
-          height: 40.0,
-          point: LatLng(center.latitude, center.longitude),
           child: GestureDetector(
             onTap: () {
               setState(() {
-                _selectedLeisureCenter = center;
-                _selectedGym = null; // Clear any selected gym
+                _selectedGym = gym;
+                _selectedLeisureCenter = null;
               });
             },
-            child: const Icon(
-              Icons.fitness_center,
-              color: Colors.green,
-              size: 40.0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.red.withAlpha((0.7 * 255).round()),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.fitness_center,
+                color: Colors.white,
+                size: 40.0,
+              ),
             ),
           ),
         ),
       );
     }
 
+    // Leisure centers with improved visibility
+    if (gymProvider.leisureCenters.isEmpty) {
+      debugPrint('Warning: No leisure centers to display on map');
+    }
+
+    for (var center in gymProvider.leisureCenters) {
+      // Skip if this center is already a registered gym - using safer comparison
+      bool alreadyRegistered = false;
+      for (var gym in gymProvider.userGyms) {
+        if (gym.id == center.id ||
+            (gym.name == center.name &&
+                gym.latLng.latitude.toStringAsFixed(4) ==
+                    center.latitude.toStringAsFixed(4) &&
+                gym.latLng.longitude.toStringAsFixed(4) ==
+                    center.longitude.toStringAsFixed(4))) {
+          alreadyRegistered = true;
+          break;
+        }
+      }
+
+      if (alreadyRegistered) continue;
+
+      markers.add(
+        Marker(
+          width: 50.0, // Increased from 40.0 for better visibility
+          height: 50.0, // Increased from 40.0 for better visibility
+          point: LatLng(center.latitude, center.longitude),
+          child: GestureDetector(
+            onTap: () {
+              debugPrint('Leisure center tapped: ${center.name}');
+              setState(() {
+                _selectedLeisureCenter = center;
+                _selectedGym = null; // Clear any selected gym
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.green.withAlpha((0.9 * 255).round()),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2), // Added border
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((0.3 * 255).round()),
+                    spreadRadius: 1,
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.fitness_center,
+                color: Colors.white,
+                size: 40.0,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    debugPrint('Total markers on map: ${markers.length}');
     setState(() {
       _markers = markers;
     });
@@ -347,9 +444,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: kPrimaryColor.withAlpha(
-            (0.1 * 255).round(),
-          ), // Changed from withOpacity
+          color: kPrimaryColor.withAlpha((0.1 * 255).round()),
           child: Row(
             children: [
               Icon(Icons.info_outline, color: kPrimaryColor),
@@ -364,104 +459,98 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
           ),
         ),
         Expanded(
-          child:
-              gymProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : gymProvider.userGyms.isEmpty
+          child: gymProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : gymProvider.userGyms.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: gymProvider.userGyms.length,
-                    itemBuilder: (context, index) {
-                      final gym = gymProvider.userGyms[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: GymTile(
-                          gym: gym,
-                          isSelected:
-                              gymProvider.isCheckedIn &&
-                              gymProvider.currentGym?.id == gym.id,
-                          canCheckIn: !gymProvider.isCheckedIn,
-                          onTap: () {
-                            // Show gym details or select it
-                          },
-                          onCheckIn: () async {
-                            // Store a reference to ScaffoldMessenger before async operations
-                            final scaffoldMessenger = ScaffoldMessenger.of(
-                              context,
-                            );
-
-                            bool isAtGym = await gymProvider.checkIfAtGym(gym);
-
-                            if (!mounted) return;
-
-                            if (isAtGym) {
-                              bool success = await gymProvider.checkInToGym(
-                                userId,
-                                gym,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: gymProvider.userGyms.length,
+                      itemBuilder: (context, index) {
+                        final gym = gymProvider.userGyms[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: GymTile(
+                            gym: gym,
+                            isSelected:
+                                gymProvider.isCheckedIn &&
+                                gymProvider.currentGym?.id == gym.id,
+                            canCheckIn: !gymProvider.isCheckedIn,
+                            onTap: () {
+                              // Show gym details or select it
+                            },
+                            onCheckIn: () async {
+                              // Store a reference to ScaffoldMessenger before async operations
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
                               );
+
+                              bool isAtGym = await gymProvider.checkIfAtGym(gym);
 
                               if (!mounted) return;
 
-                              if (success) {
+                              if (isAtGym) {
+                                bool success = await gymProvider.checkInToGym(
+                                  userId,
+                                  gym,
+                                );
+
+                                if (!mounted) return;
+
+                                if (success) {
+                                  scaffoldMessenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Successfully checked in!'),
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (!mounted) return;
                                 scaffoldMessenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text('Successfully checked in!'),
+                                    content: Text(
+                                      'You need to be at the gym to check in',
+                                    ),
+                                    backgroundColor: Colors.red,
                                   ),
                                 );
                               }
-                            } else {
+                            },
+                            onRemove: () async {
                               if (!mounted) return;
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'You need to be at the gym to check in',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                          onRemove: () async {
-                            if (!mounted) return;
 
-                            bool confirmed =
-                                await showDialog(
-                                  context: context,
-                                  builder:
-                                      (ctx) => AlertDialog(
-                                        title: const Text('Remove Gym'),
-                                        content: const Text(
-                                          'Are you sure you want to remove this gym? '
-                                          'You can add it again later.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.of(
-                                                  ctx,
-                                                ).pop(false),
-                                            child: const Text('CANCEL'),
-                                          ),
-                                          TextButton(
-                                            onPressed:
-                                                () =>
-                                                    Navigator.of(ctx).pop(true),
-                                            child: const Text('REMOVE'),
-                                          ),
-                                        ],
+                              bool confirmed = await showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Remove Gym'),
+                                      content: const Text(
+                                        'Are you sure you want to remove this gym? '
+                                        'You can add it again later.',
                                       ),
-                                ) ??
-                                false;
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(false),
+                                          child: const Text('CANCEL'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(true),
+                                          child: const Text('REMOVE'),
+                                        ),
+                                      ],
+                                    ),
+                                  ) ??
+                                  false;
 
-                            if (confirmed) {
-                              await gymProvider.removeGym(userId, gym.id);
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                              if (confirmed) {
+                                await gymProvider.removeGym(userId, gym.id);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
@@ -470,6 +559,19 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
   Widget _buildFindGymsTab(String userId, GymProvider gymProvider) {
     return Column(
       children: [
+        // Debug info row for development
+        if (gymProvider.leisureCenters.isEmpty && !_isLoading)
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: Colors.amber.withAlpha((0.2 * 255).round()),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 16),
+                const SizedBox(width: 8),
+                Expanded(child: Text('No leisure centers found nearby. Try refreshing or expanding search radius.')),
+              ],
+            ),
+          ),
         Expanded(
           child: Stack(
             children: [
@@ -477,25 +579,26 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
               _isLoading || _currentPosition == null
                   ? const Center(child: CircularProgressIndicator())
                   : OpenStreetMapWidget(
-                    initialPosition: LatLng(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
+                      initialPosition: LatLng(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                      ),
+                      initialZoom: 14,
+                      markers: _markers,
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: true,
+                      zoomControlsEnabled: false,
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                        _updateMarkers();
+                      },
+                      onTap: (_) {
+                        setState(() {
+                          _selectedGym = null;
+                          _selectedLeisureCenter = null;
+                        });
+                      },
                     ),
-                    initialZoom: 14,
-                    markers: _markers,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
-                    zoomControlsEnabled: false,
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      _updateMarkers();
-                    },
-                    onTap: (_) {
-                      setState(() {
-                        _selectedGym = null;
-                      });
-                    },
-                  ),
 
               // Attribution
               Positioned(
@@ -503,9 +606,7 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                 left: 0,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  color: Colors.white.withAlpha(
-                    (0.7 * 255).round(),
-                  ), // Changed from withOpacity
+                  color: Colors.white.withAlpha((0.7 * 255).round()),
                   child: const Text(
                     '© OpenStreetMap contributors',
                     style: TextStyle(fontSize: 10),
@@ -518,13 +619,95 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
                 top: 16,
                 right: 16,
                 child: FloatingActionButton(
+                  heroTag: "refreshButton",
                   onPressed: () {
                     _getCurrentLocation();
-                    _loadNearbyGyms();
+                    _refreshGymData();
                   },
                   backgroundColor: Colors.white,
                   mini: true,
                   child: Icon(Icons.refresh, color: kPrimaryColor),
+                ),
+              ),
+
+              // Legend for gym types
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withAlpha((0.7 * 255).round()),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Your Location',
+                                style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withAlpha((0.7 * 255).round()),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Your Gyms',
+                                style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.red.withAlpha((0.7 * 255).round()),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Other Gyms',
+                                style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.green.withAlpha((0.7 * 255).round()),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Leisure Centers',
+                                style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 
@@ -736,97 +919,95 @@ class _GymCheckinScreenState extends State<GymCheckinScreen>
 
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Add New Gym'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Gym Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Gym'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Gym Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _addressController,
-                  decoration: InputDecoration(
-                    labelText: 'Address',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('CANCEL'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _addressController,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              TextButton(
-                onPressed: () async {
-                  if (_nameController.text.isEmpty ||
-                      _addressController.text.isEmpty ||
-                      _currentPosition == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please fill all fields')),
-                    );
-                    return;
-                  }
-
-                  Navigator.of(ctx).pop();
-
-                  final gymProvider = Provider.of<GymProvider>(
-                    context,
-                    listen: false,
-                  );
-                  final authProvider = Provider.of<AuthProvider>(
-                    context,
-                    listen: false,
-                  );
-
-                  // Create new gym
-                  Gym newGym = Gym(
-                    id:
-                        DateTime.now().millisecondsSinceEpoch
-                            .toString(), // Temporary ID
-                    name: _nameController.text,
-                    address: _addressController.text,
-                    location: GeoPoint(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
-                    ),
-                  );
-
-                  bool success = await gymProvider.addNewGym(
-                    newGym,
-                    authProvider.user!.uid,
-                  );
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gym added successfully!')),
-                    );
-
-                    _tabController.animateTo(0);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          gymProvider.errorMessage ?? 'Failed to add gym',
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('ADD'),
-              ),
-            ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('CANCEL'),
           ),
+          TextButton(
+            onPressed: () async {
+              if (_nameController.text.isEmpty ||
+                  _addressController.text.isEmpty ||
+                  _currentPosition == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please fill all fields')),
+                );
+                return;
+              }
+
+              Navigator.of(ctx).pop();
+
+              final gymProvider = Provider.of<GymProvider>(
+                context,
+                listen: false,
+              );
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
+
+              // Create new gym
+              Gym newGym = Gym(
+                id: DateTime.now().millisecondsSinceEpoch
+                    .toString(), // Temporary ID
+                name: _nameController.text,
+                address: _addressController.text,
+                location: GeoPoint(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                ),
+              );
+
+              bool success = await gymProvider.addNewGym(
+                newGym,
+                authProvider.user!.uid,
+              );
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Gym added successfully!')),
+                );
+
+                _tabController.animateTo(0);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      gymProvider.errorMessage ?? 'Failed to add gym',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('ADD'),
+          ),
+        ],
+      ),
     );
   }
 }

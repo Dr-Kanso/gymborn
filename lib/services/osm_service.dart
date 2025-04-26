@@ -46,4 +46,10 @@ class OpenStreetMapService {
       throw Exception('Error reverse geocoding: $e');
     }
   }
+
+  // Search for leisure centers (gyms) near the user's location
+  Future<List<Map<String, dynamic>>> searchNearbyGyms(LatLng position) async {
+    String query = 'leisure center near ${position.latitude},${position.longitude}';
+    return await searchLocation(query);
+  }
 }
