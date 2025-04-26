@@ -7,11 +7,11 @@ import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../providers/stats_provider.dart';
-import '../screens/dungeon_screen.dart'; // Import for PlayableArea
-import 'entities/player.dart';
-import 'world/dungeon_world.dart';
-import 'ui/game_overlay.dart';
+import '../../providers/stats_provider.dart';
+import '../ui/dungeon_screen.dart'; // Import for PlayableArea
+import '../entities/player.dart';
+import '../world/dungeon_world.dart';
+import '../ui/game_overlay.dart';
 
 class GymGame extends FlameGame
     with HasCollisionDetection, HasKeyboardHandlerComponents, TapDetector {

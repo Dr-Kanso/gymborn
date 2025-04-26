@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../game/gym_game.dart'; // Changed from game_world.dart
-import '../providers/stats_provider.dart'; // Added StatsProvider import
+import '../engine/gym_game.dart'; // Changed from game_world.dart
+import '../../providers/stats_provider.dart'; // Added StatsProvider import
 
 class DungeonScreen extends StatefulWidget {
   const DungeonScreen({super.key});
@@ -45,10 +45,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
         final screenSize = MediaQuery.of(context).size;
 
         // Define playable area boundaries based on the background image
-        final topBoundaryPercent = 0.25; // Top 25% is lava
-        final bottomBoundaryPercent = 0.30; // Bottom 25% is lava
+        final topBoundaryPercent = 0.25; // Top 60% is lava
+        final bottomBoundaryPercent = 0.30; // Bottom 30% is lava
         final sideBoundaryPercent = 0.05; // Small margin on sides for rock formations
-        
         final playableArea = PlayableArea(
           topMargin: screenSize.height * topBoundaryPercent,
           bottomMargin: screenSize.height * bottomBoundaryPercent,

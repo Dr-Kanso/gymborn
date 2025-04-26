@@ -1,6 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:gymborn_app/game/gym_game.dart';
+import 'package:gymborn_app/game/engine/gym_game.dart';
 
 class GameOverlay extends Component with HasGameReference<GymGame> {
   // UI elements

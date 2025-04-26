@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:gymborn_app/game/gym_game.dart';
+import 'package:gymborn_app/game/engine/gym_game.dart';
 import 'entities/enemy.dart';
 
 class EnemyController extends Component with HasGameReference<GymGame> {

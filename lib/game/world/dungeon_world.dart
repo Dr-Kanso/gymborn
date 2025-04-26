@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 
 import '../../providers/stats_provider.dart';
 import '../entities/enemy.dart';
-import '../gym_game.dart';
-import '../../screens/dungeon_screen.dart'; // Import for PlayableArea
+import '../engine/gym_game.dart';
+import '../ui/dungeon_screen.dart'; // Import for PlayableArea
 
 class DungeonWorld extends Component with HasGameReference<GymGame> {
   final StatsProvider statsProvider;

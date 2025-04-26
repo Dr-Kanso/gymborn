@@ -6,11 +6,11 @@ import 'providers/auth_provider.dart';
 import 'providers/stats_provider.dart';
 import 'providers/gym_provider.dart';
 import 'providers/location_provider.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/game/game_screen.dart';
-import 'screens/gym/gym_checkin_screen.dart';
-import 'screens/dungeon/dungeon_screen.dart';
+import 'frontend_screens/auth/login_screen.dart';
+import 'frontend_screens/dashboard/dashboard_screen.dart';
+import 'game/ui/game_screen.dart';
+import 'frontend_screens/gym/gym_checkin_screen.dart';
+import 'frontend_screens/dungeon/dungeon_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

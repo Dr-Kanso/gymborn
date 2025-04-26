@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Add this import for orientation control
 import 'package:provider/provider.dart';
 
-import '../../game/gym_game.dart';
+import '../engine/gym_game.dart';
 import '../../providers/stats_provider.dart';
 import '../../themes/theme.dart';
 

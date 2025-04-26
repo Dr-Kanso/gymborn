@@ -5,7 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flame/sprite.dart';
 
 import '../../providers/stats_provider.dart';
-import '../gym_game.dart';
+import '../engine/gym_game.dart';
 
 enum PlayerState {
   idle,
