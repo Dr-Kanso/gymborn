@@ -1,8 +1,11 @@
+// ignore_for_file: avoid_print
+
 import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/sprite.dart';
+import 'package:gymborn_app/game/entities/enemy.dart';
 
 import '../../providers/stats_provider.dart';
 import '../engine/gym_game.dart';
@@ -11,6 +14,7 @@ enum PlayerState {
   idle,
   running,
   attacking,
+  sliding,
 }
 
 class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, CollisionCallbacks {
@@ -23,14 +27,23 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
   // Movement
   Vector2 movementDirection = Vector2.zero();
   
-  // Animations
-  late final SpriteAnimation idleAnimation;
-  late final SpriteAnimation runningAnimation;
-  late final SpriteAnimation attackingAnimation;
+  // Animations - replace individual animations with a map
+  late Map<PlayerState, SpriteAnimation> animations;
+  PlayerState currentState = PlayerState.idle;
+  
+  // Track non-looping animations
+  final Map<PlayerState, bool> _nonLoopingStates = {
+    PlayerState.attacking: true,
+    PlayerState.sliding: true,
+  };
   
   // State
-  PlayerState _currentState = PlayerState.idle;
   bool _isAttacking = false;
+  bool _isSliding = false;
+  final double _slideSpeed = 300;
+  final double _slideDuration = 0.5;
+  double _slideTimer = 0;
+  bool _isInvulnerable = false;
   
   // Screen boundary constraints
   double minX = 0;
@@ -39,13 +52,17 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
   double maxY = 0;
   bool _boundariesSet = false;
   
+  // Track the attack hitbox to update its position during animation
+  RectangleHitbox? _swordHitbox;
+  // Track animation frame to position sword hitbox accurately
+
   Player({
     required this.statsProvider,
     Vector2? position,
     Vector2? size,
   }) : super(
          position: position ?? Vector2.zero(),
-         size: size ?? Vector2(96, 96),  // Increased from 64x64 to 96x96
+         size: size ?? Vector2(128, 128),
          anchor: Anchor.center,
        );
        
@@ -66,38 +83,66 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
     await _loadAnimations();
     
     // Set initial animation
-    animation = idleAnimation;
+    animation = animations[currentState];
     
-    // Add hitbox for collisions
-    add(CircleHitbox(radius: min(size.x, size.y) / 2));
+    // Add hitbox for player body collisions (smaller than the full sprite)
+    // Make it Active to detect collisions from enemy attacks
+    add(CircleHitbox(radius: min(size.x, size.y) / 3)
+      ..position = Vector2(0, size.y * 0.2) // Slightly lower to better match body
+      ..collisionType = CollisionType.active); // Make player body hitbox active
   }
   
   Future<void> _loadAnimations() async {
-    // Load idle animation
+    // Load all sprite sheets
     final idleImage = await game.images.load('characters/women_idle.png');
     final idleSpriteSheet = SpriteSheet(
       image: idleImage,
       srcSize: Vector2(900, 900),
     );
-    idleAnimation = idleSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 17);
     
-    // Load running animation
     final runningImage = await game.images.load('characters/women_running.png');
     final runningSpriteSheet = SpriteSheet(
       image: runningImage, 
       srcSize: Vector2(900, 900),
     );
-    runningAnimation = runningSpriteSheet.createAnimation(row: 0, stepTime: 0.1, to: 11);
     
-    // Load attack animation
     final attackImage = await game.images.load('characters/women_slashing.png');
     final attackSpriteSheet = SpriteSheet(
       image: attackImage,
       srcSize: Vector2(900, 900),
     );
-    // Make attack animation not looping
-    attackingAnimation = attackSpriteSheet.createAnimation(row: 0, stepTime: 0.07, to: 11);
-    attackingAnimation.loop = false;
+    
+    final slideImage = await game.images.load('characters/women_sliding.png');
+    final slideSpriteSheet = SpriteSheet(
+      image: slideImage,
+      srcSize: Vector2(900, 900),
+    );
+    
+    // Create animations from sprite sheets and store in map
+    animations = {
+      PlayerState.idle: idleSpriteSheet.createAnimation(
+        row: 0, 
+        stepTime: 0.1, 
+        to: 17
+      ),
+      PlayerState.running: runningSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.6, 
+        to: 11
+      ),
+      PlayerState.attacking: attackSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.04, 
+        to: 11,
+        loop: false,
+      ),
+      PlayerState.sliding: slideSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1, 
+        to: 5,
+        loop: false,
+      ),
+    };
   }
   
   void move(Vector2 direction) {
@@ -105,7 +150,6 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
     
     // Update sprite horizontal direction based on movement
     if (direction.x != 0) {
-      // Flip the sprite if moving left and not already flipped, or moving right and currently flipped.
       if ((direction.x < 0 && !isFlippedHorizontally) || 
           (direction.x > 0 && isFlippedHorizontally)) {
         flipHorizontally();
@@ -113,51 +157,88 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
     }
     
     // Update state based on movement
-    if (direction.length > 0 && _currentState != PlayerState.attacking) {
-      _updateState(PlayerState.running);
-    } else if (direction.length == 0 && _currentState != PlayerState.attacking) {
-      _updateState(PlayerState.idle);
+    if (direction.length > 0 && currentState != PlayerState.attacking && 
+        currentState != PlayerState.sliding) {
+      changeState(PlayerState.running);
+    } else if (direction.length == 0 && currentState != PlayerState.attacking && 
+              currentState != PlayerState.sliding) {
+      changeState(PlayerState.idle);
     }
   }
   
   void attack() {
-    if (_currentState != PlayerState.attacking) {
+    if (currentState != PlayerState.attacking && !_isSliding) {
       _isAttacking = true;
-      _updateState(PlayerState.attacking);
+      changeState(PlayerState.attacking);
       
-      // Create a timer to handle animation completion since onComplete isn't available
-      final animDuration = 0.07 * 11; // stepTime * frame count
-      Future.delayed(Duration(milliseconds: (animDuration * 1000).toInt()), () {
-        if (_currentState == PlayerState.attacking) {
-          _isAttacking = false;
-          if (movementDirection.length > 0) {
-            _updateState(PlayerState.running);
-          } else {
-            _updateState(PlayerState.idle);
-          }
+      // Create a more precise hitbox for the sword
+      final Vector2 swordSize = Vector2(size.x * 0.3, size.y * 0.4);
+      
+      // Position the hitbox near the player's feet and closer horizontally
+      // Restore directional logic and reduce the offset multiplier
+      final double swordOffsetX = size.x * 0.8; 
+      final double swordOffsetY = size.y * 0.5; // Keep Y offset near feet
+      
+      _swordHitbox = RectangleHitbox(
+        position: Vector2(swordOffsetX, swordOffsetY),
+        size: swordSize,
+        anchor: Anchor.center,
+        collisionType: CollisionType.active,
+      )..debugMode = true; // Keep debug mode to visualize hitbox
+      
+      add(_swordHitbox!);
+    }
+  }
+
+  void slide() {
+    if (currentState != PlayerState.sliding && !_isSliding) {
+      _isSliding = true;
+      _isInvulnerable = true;
+      _slideTimer = 0;
+      
+      if (movementDirection.length == 0) {
+        _isSliding = false;
+        _isInvulnerable = false;
+        return;
+      }
+      
+      if (movementDirection.length > 1) {
+        movementDirection = movementDirection.normalized();
+      }
+      
+      if (movementDirection.x != 0) {
+        if ((movementDirection.x < 0 && !isFlippedHorizontally) || 
+            (movementDirection.x > 0 && isFlippedHorizontally)) {
+          flipHorizontally();
         }
-      });
+      }
+      
+      changeState(PlayerState.sliding);
     }
   }
   
-  void _updateState(PlayerState newState) {
-    if (_currentState == newState) return;
+  // New method to match enemy.dart pattern
+  void changeState(PlayerState newState) {
+    if (newState == currentState) return;
     
-    _currentState = newState;
+    currentState = newState;
+    animation = animations[newState];
     
-    // Update animation based on state
-    switch (newState) {
-      case PlayerState.idle:
-        animation = idleAnimation;
-        break;
-      case PlayerState.running:
-        animation = runningAnimation;
-        break;
-      case PlayerState.attacking:
-        animation = attackingAnimation;
-        // Restart the animation
-        animationTicker?.reset();
-        break;
+    // Set animation to first frame
+    if (animation != null) {
+      animationTicker?.reset();
+    }
+  }
+  
+  // New method to handle animation completion
+  void _returnToIdle() {
+    _isAttacking = false;
+    _isSliding = false;
+    
+    if (movementDirection.length > 0) {
+      changeState(PlayerState.running);
+    } else {
+      changeState(PlayerState.idle);
     }
   }
   
@@ -165,30 +246,82 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
   void update(double dt) {
     super.update(dt);
     
-    if (!_isAttacking) {
+    // Handle animation completion for non-looping animations
+    if (_nonLoopingStates[currentState] == true &&
+        animationTicker != null &&
+        animationTicker!.isLastFrame &&
+        animation != null && 
+        !animation!.loop) {
+      
+      // Special handling for slide state
+      if (currentState == PlayerState.sliding) {
+        _isSliding = false;
+        _isInvulnerable = false;
+      }
+      
+      // Special handling for attack state
+      if (currentState == PlayerState.attacking) {
+        _isAttacking = false;
+        if (_swordHitbox != null && _swordHitbox!.parent != null) {
+          _swordHitbox!.removeFromParent();
+          _swordHitbox = null;
+        }
+      }
+      
+      _returnToIdle();
+      return;
+    }
+    
+    if (_isSliding) {
+      // Update slide timer
+      _slideTimer += dt;
+      
+      // Move player in sliding direction with increased speed
+      Vector2 slideDirection = movementDirection.normalized();
+      
+      Vector2 newPosition = position + slideDirection * _slideSpeed * dt;
+      
+      // Enforce boundaries if they're set
+      if (_boundariesSet) {
+        double xOffset = size.x / 3;
+        double topOffset = size.y / 2.5;
+        double feetOffset = size.y / 10;
+        
+        newPosition.x = newPosition.x.clamp(minX + xOffset, maxX - xOffset);
+        
+        if (newPosition.y < minY + topOffset) {
+          newPosition.y = minY + topOffset;
+        }
+        if (newPosition.y > maxY - feetOffset) {
+          newPosition.y = maxY - feetOffset;
+        }
+      }
+      
+      // Apply the new position
+      position = newPosition;
+      
+      // End slide if duration is over
+      if (_slideTimer >= _slideDuration) {
+        _isSliding = false;
+        _isInvulnerable = false;
+        _returnToIdle();
+      }
+    } else if (!_isAttacking) {
       // Move player if not attacking
       if (movementDirection.length > 0) {
         Vector2 newPosition = position + movementDirection * speed * dt;
         
         // Enforce boundaries if they're set
         if (_boundariesSet) {
-          // Use different offsets for x and y to better match character's feet position
-          double xOffset = size.x / 3; // Character is wider than hitbox suggests
+          double xOffset = size.x / 3;
+          double topOffset = size.y / 2.5;
+          double feetOffset = size.y / 10;
           
-          // Separate offsets for top and bottom boundaries
-          double topOffset = size.y / 2.5; // Prevent head from entering ceiling
-          double feetOffset = size.y / 10; // Allow feet to reach blue boundary line
-          
-          // Enforce x boundaries
           newPosition.x = newPosition.x.clamp(minX + xOffset, maxX - xOffset);
           
-          // Enforce y boundaries with separate offsets
-          // For top boundary: keep the head below the ceiling
           if (newPosition.y < minY + topOffset) {
             newPosition.y = minY + topOffset;
           }
-          
-          // For bottom boundary: allow feet to reach the blue line
           if (newPosition.y > maxY - feetOffset) {
             newPosition.y = maxY - feetOffset;
           }
@@ -197,15 +330,12 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
         // Apply the new position
         position = newPosition;
       }
-      
-      // Update state
-      if (movementDirection.length == 0 && _currentState == PlayerState.running) {
-        _updateState(PlayerState.idle);
-      }
     }
   }
   
   void takeDamage(double amount) {
+    if (_isInvulnerable) return;
+    
     health -= amount;
     if (health <= 0) {
       die();
@@ -215,7 +345,16 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
   }
   
   void die() {
-    // Game over logic
     game.endGame();
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+    
+    if (_isAttacking && other is Enemy) {
+      other.takeDamage(attackPower);
+      print('$attackPower');
+    }
   }
 }

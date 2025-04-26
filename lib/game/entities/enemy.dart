@@ -1,45 +1,74 @@
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/sprite.dart';
+import 'package:flutter/material.dart';
+import 'package:gymborn_app/game/engine/gym_game.dart';
+import 'package:gymborn_app/game/entities/player.dart'; // Import Player
 
-enum EnemyState { idle, hurt, running, slashing }
+enum EnemyState { idle, hurt, running, slashing, dying }
 
-class Enemy extends SpriteAnimationComponent with HasGameReference {
+class Enemy extends SpriteAnimationComponent
+    with HasGameReference<GymGame>, CollisionCallbacks {
   // Animation properties
   late Map<EnemyState, SpriteAnimation> animations;
   EnemyState currentState = EnemyState.idle;
-  
+
   // Track non-looping animations current frame
   final Map<EnemyState, bool> _nonLoopingStates = {
     EnemyState.hurt: true,
     EnemyState.slashing: true,
+    EnemyState.dying: true,
   };
 
   // Combat properties
   double health = 100;
   double maxHealth = 100;
   bool isDead = false;
-  
+  double attackPower = 5; // Enemy attack damage
+  double attackRange = 80; // Distance within which the enemy attacks
+  double attackCooldown = 2.0; // Seconds between attacks
+  double _timeSinceLastAttack = 0;
+  bool _isAttacking = false; // Track if currently attacking
+  RectangleHitbox? _attackHitbox; // Hitbox for the enemy's attack
+
   // Movement properties
-  Vector2 movementDirection = Vector2.zero(); // Added for movement tracking
-  
+  Vector2 movementDirection = Vector2.zero();
+  double speed = 80; // Enemy movement speed
+
   // Movement boundaries
   double _minX = 0;
   double _maxX = 0;
   double _minY = 0;
   double _maxY = 0;
   double detectionRadius = 150;
+  final dynamic statsProvider;
 
-  Enemy({required Vector2 position, required Vector2 size}) : super(position: position, size: size);
-
+  Enemy({
+    required this.statsProvider,
+    Vector2? position,
+    Vector2? size,
+  }) : super(
+         position: position ?? Vector2.zero(),
+         size: size ?? Vector2(128, 128),
+         anchor: Anchor.center,
+       );
+       
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     await _loadAnimations();
     animation = animations[currentState];
+
+    // Add a hitbox for collision detection with player body/attacks
+    add(RectangleHitbox(
+      size: size * 0.6, // Smaller hitbox for body
+      position: size * 0.2, // Center it
+      anchor: Anchor.topLeft,
+      collisionType: CollisionType.passive, // Passive for player attacks
+    ));
   }
 
   Future<void> _loadAnimations() async {
-    // Load all animations from sprite sheets
     final idleSpriteSheet = SpriteSheet(
       image: await game.images.load('dungeons/enemy.png'),
       srcSize: Vector2(900, 900),
@@ -60,29 +89,39 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
       srcSize: Vector2(900, 900),
     );
 
-    // Create animations from sprite sheets
+    final deathSpriteSheet = SpriteSheet(
+      image: await game.images.load('dungeons/enemy_death.png'),
+      srcSize: Vector2(900, 900),
+    );
+
     animations = {
       EnemyState.idle: idleSpriteSheet.createAnimation(
         row: 0,
         stepTime: 0.1,
-        to: 17, // Based on enemy.json having 18 frames (0-17)
+        to: 17,
       ),
       EnemyState.hurt: hurtSpriteSheet.createAnimation(
         row: 0,
-        stepTime: 0.1,
-        to: 11, // Based on enemy_hurt.json having 12 frames (0-11)
+        stepTime: 0.05,
+        to: 11,
         loop: false,
       ),
       EnemyState.slashing: slashingSpriteSheet.createAnimation(
         row: 0,
-        stepTime: 0.1,
-        to: 11, // Based on enemy_slashing.json having 12 frames (0-11)
+        stepTime: 0.05,
+        to: 11,
         loop: false,
       ),
       EnemyState.running: runningSpriteSheet.createAnimation(
         row: 0,
         stepTime: 0.1,
-        to: 10, // Based on enemy_running.json having 11 frames (0-10)
+        to: 10,
+      ),
+      EnemyState.dying: deathSpriteSheet.createAnimation(
+        row: 0,
+        stepTime: 0.1,
+        to: 14,
+        loop: false,
       ),
     };
   }
@@ -90,40 +129,71 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
   @override
   void update(double dt) {
     super.update(dt);
-    
-    // Handle animation completion for non-looping animations
+    _timeSinceLastAttack += dt;
+
+    if (isDead) return;
+
+    // --- Animation Completion Logic ---
     if (_nonLoopingStates[currentState] == true &&
         animationTicker != null &&
         animationTicker!.isLastFrame &&
-        animation != null && 
-        !animation!.loop) { 
+        animation != null &&
+        !animation!.loop) {
+      if (currentState == EnemyState.slashing) {
+        _isAttacking = false;
+        // Ensure hitbox is removed if it still exists when animation ends
+        if (_attackHitbox != null && _attackHitbox!.parent != null) {
+          _attackHitbox!.removeFromParent();
+          _attackHitbox = null;
+        }
+      }
       _returnToIdle();
+      return;
     }
-    
-    // Fix boundary enforcement - ensure enemies stay fully visible
-    // Use more accurate offsets based on sprite dimensions
-    double xOffset = size.x / 3; // Match player's horizontal offset
-    
-    // Adjust offsets to match visual appearance of sprites
-    double topOffset = size.y / 2.5;  // Prevent head from entering ceiling
-    double bottomOffset = size.y / 5;  // Ensure feet stay fully above the boundary
-    
+
+    // --- AI Logic ---
+    final player = game.player;
+    double distanceToPlayer = position.distanceTo(player.position);
+
+    if (distanceToPlayer <= attackRange &&
+        _timeSinceLastAttack >= attackCooldown &&
+        !_isAttacking) {
+      attack(); // Initiate attack state
+    } else if (!_isAttacking) {
+      if (distanceToPlayer > attackRange && distanceToPlayer <= detectionRadius) {
+        movementDirection = (player.position - position).normalized();
+        move(movementDirection);
+      } else {
+        move(Vector2.zero());
+      }
+
+      if (currentState == EnemyState.running) {
+        position += movementDirection * speed * dt;
+      }
+    }
+
+    _enforceBoundaries();
+
+    // --- Remove Dynamic Attack Hitbox Logic ---
+    // The logic previously here for updating hitbox based on frame is removed.
+    // Hitbox is now created in attack() and removed on animation completion.
+  }
+
+  void _enforceBoundaries() {
+    double xOffset = size.x / 3;
+    double topOffset = size.y / 2.5;
+    double bottomOffset = size.y / 5;
+
     double newX = position.x.clamp(_minX + xOffset, _maxX - xOffset);
-    
-    // Apply separate boundary logic for top and bottom
     double newY = position.y;
-    
-    // For top boundary: keep the head below the ceiling
+
     if (position.y < _minY + topOffset) {
       newY = _minY + topOffset;
     }
-    
-    // For bottom boundary: keep the full sprite above the boundary
     if (position.y > _maxY - bottomOffset) {
-      newY = _maxY - bottomOffset; 
+      newY = _maxY - bottomOffset;
     }
-    
-    // Only update if position changed to avoid unnecessary updates
+
     if (position.x != newX || position.y != newY) {
       position = Vector2(newX, newY);
     }
@@ -138,11 +208,10 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
 
   void changeState(EnemyState newState) {
     if (isDead && newState != EnemyState.hurt) return;
-    
+
     currentState = newState;
     animation = animations[newState];
-    
-    // Set animation to first frame
+
     if (animation != null) {
       animationTicker?.reset();
     }
@@ -156,41 +225,108 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
 
   void takeDamage(double amount) {
     if (isDead) return;
-    
+
     health -= amount;
+
+    paint = Paint()..color = Colors.red.withAlpha((0.8 * 255).toInt());
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!isDead) {
+        paint = Paint();
+      }
+    });
+
     if (health <= 0) {
       health = 0;
       isDead = true;
+      changeState(EnemyState.dying);
+      animationTicker?.reset();
+      children.whereType<RectangleHitbox>().forEach((hitbox) {
+        hitbox.removeFromParent();
+      });
+
+      final dyingAnimation = animations[EnemyState.dying];
+      final animDuration = dyingAnimation != null
+          ? (dyingAnimation.frames.length * dyingAnimation.frames.first.stepTime)
+          : (15 * 0.1);
+
+      Future.delayed(Duration(milliseconds: (animDuration * 1000).toInt()), () {
+        if (parent != null) {
+          removeFromParent();
+          game.enemiesDefeated += 1;
+        }
+      });
+    } else {
+      if (currentState != EnemyState.slashing && currentState != EnemyState.dying) {
+        changeState(EnemyState.hurt);
+      }
     }
-    
-    changeState(EnemyState.hurt);
   }
 
   void startRunning() {
-    if (isDead) return;
+    if (isDead || _isAttacking) return;
     changeState(EnemyState.running);
   }
 
   void attack() {
-    if (isDead) return;
+    if (isDead || _isAttacking) return;
+
+    _isAttacking = true;
+    _timeSinceLastAttack = 0;
     changeState(EnemyState.slashing);
+    movementDirection = Vector2.zero(); // Stop moving
+
+    // Create hitbox ONCE when attack starts, at a fixed position
+    final Vector2 hitboxSize = Vector2(size.x * 0.5, size.y * 0.4); // Adjusted size
+    // Position based on direction (similar to player's logic)
+    final double hitboxOffsetX = size.x * 0.8; // In front
+    final double hitboxOffsetY = size.y * 0.4; // Slightly offset vertically
+
+    _attackHitbox = RectangleHitbox(
+      position: Vector2(hitboxOffsetX, hitboxOffsetY),
+      size: hitboxSize,
+      anchor: Anchor.center,
+      collisionType: CollisionType.active,
+    )..debugMode = true;
+    add(_attackHitbox!);
   }
 
   void move(Vector2 direction) {
-    movementDirection = direction;
-    
-    // Update sprite horizontal direction based on movement
-    if (direction.x < 0 && !isFlippedHorizontally) {
-      flipHorizontally();
-    } else if (direction.x > 0 && isFlippedHorizontally) {
-      flipHorizontally(); // Flip back to original orientation
+    if (_isAttacking || isDead) {
+      if (currentState != EnemyState.slashing &&
+          currentState != EnemyState.dying &&
+          currentState != EnemyState.hurt) {
+        changeState(EnemyState.idle);
+      }
+      movementDirection = Vector2.zero();
+      return;
     }
-    
-    // Update state based on movement
-    if (direction.length > 0 && currentState != EnemyState.slashing) {
+
+    movementDirection = direction;
+
+    if (direction.x != 0) {
+      final playerX = game.player.position.x;
+      if (playerX < position.x && !isFlippedHorizontally) {
+        flipHorizontally();
+      } else if (playerX > position.x && isFlippedHorizontally) {
+        flipHorizontally();
+      }
+    }
+
+    if (direction.length > 0) {
       changeState(EnemyState.running);
-    } else if (direction.length == 0 && currentState != EnemyState.slashing) {
+    } else {
       changeState(EnemyState.idle);
+    }
+  }
+
+  @override
+  void onCollisionStart(
+      Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+
+    // Add null check for _attackHitbox before accessing isRemoving
+    if (_isAttacking && other is Player && _attackHitbox != null && !_attackHitbox!.isRemoving) {
+      other.takeDamage(attackPower);
     }
   }
 }

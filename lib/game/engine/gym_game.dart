@@ -185,6 +185,12 @@ class GymGame extends FlameGame
       player.attack();
     }
 
+    // Handle sliding with Shift key
+    if (isKeyDown && event.logicalKey == LogicalKeyboardKey.shift) {
+      player.slide();
+      return KeyEventResult.handled;
+    }
+
     return super.onKeyEvent(event, keysPressed);
   }
 

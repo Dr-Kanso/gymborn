@@ -104,7 +104,8 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
       // Create enemy
       final enemy = Enemy(
         position: Vector2(x, y),
-        size: Vector2(72, 72),
+        size: Vector2(128, 128),
+        statsProvider: statsProvider,
       );
       
       // Set detection radius

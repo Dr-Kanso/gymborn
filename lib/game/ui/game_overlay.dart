@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 import 'package:gymborn_app/game/engine/gym_game.dart';
 
@@ -61,6 +62,25 @@ class GameOverlay extends Component with HasGameReference<GymGame> {
       Vector2(20 + healthBarWidth / 2, 20 + healthBarHeight / 2),
       anchor: Anchor.center,
     );
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+
+    // Add a new button for sliding alongside your existing touch controls
+    ButtonComponent slideButton = ButtonComponent(
+      button: CircleComponent(
+        radius: 32,
+        paint: Paint()..color = Colors.blue.withAlpha((0.5 * 255).toInt()), // Fixed deprecated withOpacity
+      ),
+      position: Vector2(game.size.x - 80, game.size.y - 80),
+      onPressed: () {
+        game.player.slide();
+      },
+    )..anchor = Anchor.center;
+
+    add(slideButton);
   }
 
   Color _getHealthColor(double percentage) {
