@@ -97,11 +97,15 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
       _returnToIdle();
     }
     
-    // Enforce movement boundaries
-    if (position.x < _minX) position.x = _minX;
-    if (position.x > _maxX) position.x = _maxX;
-    if (position.y < _minY) position.y = _minY;
-    if (position.y > _maxY) position.y = _maxY;
+    // Enforce movement boundaries with offset to prevent visible overflow
+    double offset = size.x / 2;
+    double newX = position.x.clamp(_minX + offset, _maxX - offset);
+    double newY = position.y.clamp(_minY + offset, _maxY - offset);
+    
+    // Only update if position changed to avoid unnecessary updates
+    if (position.x != newX || position.y != newY) {
+      position = Vector2(newX, newY);
+    }
   }
 
   void setBoundaries(double minX, double maxX, double minY, double maxY) {

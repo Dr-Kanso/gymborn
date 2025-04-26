@@ -50,76 +50,53 @@ class _GameScreenState extends State<GameScreen> {
         title: const Text('Dungeon Adventure'),
         backgroundColor: kPrimaryColor,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: GameWidget<GymGame>(
-              game: _game,
-              loadingBuilder: (context) => const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading Dungeon...'),
-                  ],
-                ),
-              ),
-              overlayBuilderMap: {
-                'touchControls': (context, game) {
-                  return Positioned(
-                    bottom: 20,
-                    left: 20,
-                    child: joystickComponent(
-                      onDirectionChanged: (direction) {
-                        game.player.move(direction);
-                      },
-                    ),
-                  );
-                },
-                'attackButton': (context, game) {
-                  return Positioned(
-                    bottom: 30,
-                    right: 30,
-                    child: GestureDetector(
-                      onTap: () => game.player.attack(),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: kPrimaryColor.withAlpha((0.7 * 255).round()),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.flash_on,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              },
-            ),
+      body: GameWidget<GymGame>(
+        game: _game,
+        loadingBuilder: (context) => const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading Dungeon...'),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: kBackgroundColor,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Dungeon Level 1',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: kTextColor,
+        ),
+        overlayBuilderMap: {
+          'touchControls': (context, game) {
+            return Positioned(
+              bottom: 20,
+              left: 20,
+              child: joystickComponent(
+                onDirectionChanged: (direction) {
+                  game.player.move(direction);
+                },
+              ),
+            );
+          },
+          'attackButton': (context, game) {
+            return Positioned(
+              bottom: 30,
+              right: 30,
+              child: GestureDetector(
+                onTap: () => game.player.attack(),
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withAlpha((0.7 * 255).round()),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.flash_on,
+                    color: Colors.white,
+                    size: 30,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            );
+          },
+        },
       ),
     );
   }

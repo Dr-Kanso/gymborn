@@ -45,7 +45,7 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
     Vector2? size,
   }) : super(
          position: position ?? Vector2.zero(),
-         size: size ?? Vector2(64, 64),
+         size: size ?? Vector2(96, 96),  // Increased from 64x64 to 96x96
          anchor: Anchor.center,
        );
        
@@ -163,19 +163,19 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
         
         // Enforce boundaries if they're set
         if (_boundariesSet) {
-          newPosition.x = newPosition.x.clamp(minX, maxX);
-          newPosition.y = newPosition.y.clamp(minY, maxY);
+          // Clamp to boundaries with offset based on sprite size to prevent visual overflow
+          double offset = size.x / 2;
+          newPosition.x = newPosition.x.clamp(minX + offset, maxX - offset);
+          newPosition.y = newPosition.y.clamp(minY + offset, maxY - offset);
         }
         
         // Apply the new position
         position = newPosition;
       }
       
-      // Flip based on movement direction
-      if (movementDirection.x < 0 && !isFlippedHorizontally) {
-        flipHorizontally();
-      } else if (movementDirection.x > 0 && isFlippedHorizontally) {
-        flipHorizontally(); // Unflip if moving right and currently flipped
+      // Update state
+      if (movementDirection.length == 0 && _currentState == PlayerState.running) {
+        _updateState(PlayerState.idle);
       }
     }
   }

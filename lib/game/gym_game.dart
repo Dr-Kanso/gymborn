@@ -8,12 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../providers/stats_provider.dart';
+import '../screens/dungeon_screen.dart'; // Import for PlayableArea
 import 'entities/player.dart';
 import 'world/dungeon_world.dart';
+import 'ui/game_overlay.dart';
 
 class GymGame extends FlameGame
     with HasCollisionDetection, HasKeyboardHandlerComponents, TapDetector {
   final StatsProvider statsProvider;
+  final PlayableArea? playableArea; // Added PlayableArea parameter
 
   // Game entities
   late Player player;
@@ -27,10 +30,12 @@ class GymGame extends FlameGame
   int enemiesDefeated = 0;
   bool gameOver = false;
 
-  GymGame({required this.statsProvider});
+  GymGame({required this.statsProvider, this.playableArea}); // Updated constructor
 
   @override
   Future<void> onLoad() async {
+    await super.onLoad();
+
     // Set camera viewport
     camera.viewport = FixedResolutionViewport(resolution: Vector2(800, 600));
 
@@ -52,6 +57,9 @@ class GymGame extends FlameGame
       );
     }
 
+    // Add overlay for UI
+    add(GameOverlay());
+
     // Add player
     player = Player(statsProvider: statsProvider);
     player.position = Vector2(size.x / 2, size.y / 2);
@@ -65,8 +73,10 @@ class GymGame extends FlameGame
     _isPlayerInitialized = true;
 
     // Add dungeon world (which will handle enemies and obstacles)
-    dungeonWorld = DungeonWorld(statsProvider: statsProvider);
-    add(dungeonWorld);
+    add(DungeonWorld(
+      statsProvider: statsProvider,
+      playableArea: playableArea,
+    ));
 
     // Add UI components
     add(
@@ -91,6 +101,10 @@ class GymGame extends FlameGame
         },
       ),
     );
+
+    // Enable overlays for controls
+    overlays.add('touchControls');
+    overlays.add('attackButton');
   }
 
   void updateScore() {

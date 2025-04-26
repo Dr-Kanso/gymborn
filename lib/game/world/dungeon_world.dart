@@ -61,6 +61,9 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
       _minY = defaultPadding;
       _maxY = worldSize.y - defaultPadding;
     }
+    
+    // Apply boundaries to player immediately
+    game.player.setBoundaries(_minX, _maxX, _minY, _maxY);
   }
 
   Future<void> _setLandscapeOrientation() async {
@@ -89,7 +92,7 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
       // Create enemy
       final enemy = Enemy(
         position: Vector2(x, y),
-        size: Vector2(48, 48),
+        size: Vector2(72, 72),  // Increased from 48x48 to 72x72
       );
       
       // Set detection radius (can be accessed from enemy.detectionRadius now)
