@@ -1,4 +1,5 @@
 import 'dart:math';
+// Add this import for Paint and PaintingStyle
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
@@ -79,26 +80,37 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
     final enemyCount =
         5 + (stats?.totalLevel ?? 0) ~/ 3; // More enemies as player levels up
 
-    // Adjust enemy distribution for horizontal layout
-    // Distribute enemies within the playable area
-    double horizontalSpacing = (_maxX - _minX) / (enemyCount + 1);
+    // Define red box region (right side of playable area)
+    final enemySize = 72.0;
+    
+    // Red box region calculations
+    // Use 60% of the right side of the playable area
+    final redBoxMinX = _minX + ((_maxX - _minX) * 0.6); // Start at 60% of screen width
+    final redBoxMaxX = _maxX - (enemySize / 2);         // End near the right boundary
+    final redBoxMinY = _minY + (enemySize / 2);         // Top of playable area
+    final redBoxMaxY = _maxY - (enemySize / 2);         // Bottom of playable area
+    
+    // Calculate spacing for enemies within red box
+    double horizontalSpacing = (redBoxMaxX - redBoxMinX) / (enemyCount + 1);
 
-    // Spawn enemies
+    // Spawn enemies within red box region only
     for (int i = 0; i < enemyCount; i++) {
-      // Position within playable area only
-      final x = _minX + (i * horizontalSpacing) + (_random.nextDouble() * horizontalSpacing * 0.5);
-      final y = _minY + _random.nextDouble() * (_maxY - _minY);
+      // Position within red box area
+      final x = redBoxMinX + (i * horizontalSpacing);
+      
+      // Randomize Y position within red box
+      final y = redBoxMinY + _random.nextDouble() * (redBoxMaxY - redBoxMinY);
 
       // Create enemy
       final enemy = Enemy(
         position: Vector2(x, y),
-        size: Vector2(72, 72),  // Increased from 48x48 to 72x72
+        size: Vector2(72, 72),
       );
       
-      // Set detection radius (can be accessed from enemy.detectionRadius now)
+      // Set detection radius
       enemy.detectionRadius = 150 + (_random.nextDouble() * 100);
 
-      // Pass playable area boundaries to enemy
+      // Pass playable area boundaries to enemy (still using full playable area for movement)
       enemy.setBoundaries(_minX, _maxX, _minY, _maxY);
       
       game.add(enemy);

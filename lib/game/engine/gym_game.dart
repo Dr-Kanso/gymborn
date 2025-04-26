@@ -62,12 +62,28 @@ class GymGame extends FlameGame
 
     // Add player
     player = Player(statsProvider: statsProvider);
-    player.position = Vector2(size.x / 2, size.y / 2);
+    
+    // Position player within the blue box region shown in the screenshot
+    if (playableArea != null) {
+      // Calculate the blue box region - it's in the upper-left quarter of the playable area
+      double leftEdge = playableArea!.leftMargin;
+      double topEdge = playableArea!.topMargin;
+      double playableWidth = size.x - playableArea!.leftMargin - playableArea!.rightMargin;
+      double playableHeight = size.y - playableArea!.topMargin - playableArea!.bottomMargin;
+      
+      // The blue circle appears to be centered in the blue box
+      // Approximately at 25% of playable width and 25% of playable height from the top-left
+      double blueBoxX = leftEdge + (playableWidth * 0.15); 
+      double blueBoxY = topEdge + (playableHeight * 0.25);
+      
+      player.position = Vector2(blueBoxX, blueBoxY);
+    } else {
+      // Fallback to center if no playable area defined
+      player.position = Vector2(size.x / 2, size.y / 2);
+    }
 
-    // Set player boundaries
-    const playerPadding = 32.0;
-    player.setBoundaries(playerPadding, size.x - playerPadding,
-        playerPadding, size.y - playerPadding);
+    // Remove boundary setting here - will be set by DungeonWorld using playableArea
+    // Don't set player.setBoundaries here as it will be set by DungeonWorld
 
     add(player);
     _isPlayerInitialized = true;
@@ -217,13 +233,7 @@ class GymGame extends FlameGame
     // Update camera viewport to match the new screen size
     camera.viewport = FixedResolutionViewport(resolution: size);
 
-    // Only update player boundaries if player is initialized
-    if (_isPlayerInitialized) {
-      // Set player boundaries
-      const playerPadding = 32.0;
-      player.setBoundaries(playerPadding, size.x - playerPadding,
-          playerPadding, size.y - playerPadding);
-    }
+    // Don't reset player boundaries here - let DungeonWorld handle it
 
     // Update world boundaries for the dungeon
     final dungeonWorlds = children.whereType<DungeonWorld>();

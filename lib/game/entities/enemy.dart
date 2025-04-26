@@ -19,6 +19,9 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
   double maxHealth = 100;
   bool isDead = false;
   
+  // Movement properties
+  Vector2 movementDirection = Vector2.zero(); // Added for movement tracking
+  
   // Movement boundaries
   double _minX = 0;
   double _maxX = 0;
@@ -92,15 +95,33 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
     if (_nonLoopingStates[currentState] == true &&
         animationTicker != null &&
         animationTicker!.isLastFrame &&
-        animation != null && // Ensure animation is not null
-        !animation!.loop) { // Access loop from the animation itself
+        animation != null && 
+        !animation!.loop) { 
       _returnToIdle();
     }
     
-    // Enforce movement boundaries with offset to prevent visible overflow
-    double offset = size.x / 2;
-    double newX = position.x.clamp(_minX + offset, _maxX - offset);
-    double newY = position.y.clamp(_minY + offset, _maxY - offset);
+    // Fix boundary enforcement - ensure enemies stay fully visible
+    // Use more accurate offsets based on sprite dimensions
+    double xOffset = size.x / 3; // Match player's horizontal offset
+    
+    // Adjust offsets to match visual appearance of sprites
+    double topOffset = size.y / 2.5;  // Prevent head from entering ceiling
+    double bottomOffset = size.y / 5;  // Ensure feet stay fully above the boundary
+    
+    double newX = position.x.clamp(_minX + xOffset, _maxX - xOffset);
+    
+    // Apply separate boundary logic for top and bottom
+    double newY = position.y;
+    
+    // For top boundary: keep the head below the ceiling
+    if (position.y < _minY + topOffset) {
+      newY = _minY + topOffset;
+    }
+    
+    // For bottom boundary: keep the full sprite above the boundary
+    if (position.y > _maxY - bottomOffset) {
+      newY = _maxY - bottomOffset; 
+    }
     
     // Only update if position changed to avoid unnecessary updates
     if (position.x != newX || position.y != newY) {
@@ -153,5 +174,23 @@ class Enemy extends SpriteAnimationComponent with HasGameReference {
   void attack() {
     if (isDead) return;
     changeState(EnemyState.slashing);
+  }
+
+  void move(Vector2 direction) {
+    movementDirection = direction;
+    
+    // Update sprite horizontal direction based on movement
+    if (direction.x < 0 && !isFlippedHorizontally) {
+      flipHorizontally();
+    } else if (direction.x > 0 && isFlippedHorizontally) {
+      flipHorizontally(); // Flip back to original orientation
+    }
+    
+    // Update state based on movement
+    if (direction.length > 0 && currentState != EnemyState.slashing) {
+      changeState(EnemyState.running);
+    } else if (direction.length == 0 && currentState != EnemyState.slashing) {
+      changeState(EnemyState.idle);
+    }
   }
 }

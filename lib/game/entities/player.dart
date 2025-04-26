@@ -103,6 +103,15 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
   void move(Vector2 direction) {
     movementDirection = direction;
     
+    // Update sprite horizontal direction based on movement
+    if (direction.x != 0) {
+      // Flip the sprite if moving left and not already flipped, or moving right and currently flipped.
+      if ((direction.x < 0 && !isFlippedHorizontally) || 
+          (direction.x > 0 && isFlippedHorizontally)) {
+        flipHorizontally();
+      }
+    }
+    
     // Update state based on movement
     if (direction.length > 0 && _currentState != PlayerState.attacking) {
       _updateState(PlayerState.running);
@@ -163,10 +172,26 @@ class Player extends SpriteAnimationComponent with HasGameReference<GymGame>, Co
         
         // Enforce boundaries if they're set
         if (_boundariesSet) {
-          // Clamp to boundaries with offset based on sprite size to prevent visual overflow
-          double offset = size.x / 2;
-          newPosition.x = newPosition.x.clamp(minX + offset, maxX - offset);
-          newPosition.y = newPosition.y.clamp(minY + offset, maxY - offset);
+          // Use different offsets for x and y to better match character's feet position
+          double xOffset = size.x / 3; // Character is wider than hitbox suggests
+          
+          // Separate offsets for top and bottom boundaries
+          double topOffset = size.y / 2.5; // Prevent head from entering ceiling
+          double feetOffset = size.y / 10; // Allow feet to reach blue boundary line
+          
+          // Enforce x boundaries
+          newPosition.x = newPosition.x.clamp(minX + xOffset, maxX - xOffset);
+          
+          // Enforce y boundaries with separate offsets
+          // For top boundary: keep the head below the ceiling
+          if (newPosition.y < minY + topOffset) {
+            newPosition.y = minY + topOffset;
+          }
+          
+          // For bottom boundary: allow feet to reach the blue line
+          if (newPosition.y > maxY - feetOffset) {
+            newPosition.y = maxY - feetOffset;
+          }
         }
         
         // Apply the new position

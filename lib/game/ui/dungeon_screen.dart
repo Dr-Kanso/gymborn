@@ -44,10 +44,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
         // Calculate screen dimensions based on current orientation
         final screenSize = MediaQuery.of(context).size;
 
-        // Define playable area boundaries based on the background image
-        final topBoundaryPercent = 0.25; // Top 60% is lava
-        final bottomBoundaryPercent = 0.30; // Bottom 30% is lava
-        final sideBoundaryPercent = 0.05; // Small margin on sides for rock formations
+        // Define playable area boundaries based on the blue region in the screenshot
+        final topBoundaryPercent = 0.28; // Top 28% is outside the blue region
+        final bottomBoundaryPercent = 0.28; // Bottom 28% is outside the blue region
+        final sideBoundaryPercent = 0.12; // Side margins to match blue border
         final playableArea = PlayableArea(
           topMargin: screenSize.height * topBoundaryPercent,
           bottomMargin: screenSize.height * bottomBoundaryPercent,
