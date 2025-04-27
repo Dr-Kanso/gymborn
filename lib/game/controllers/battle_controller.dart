@@ -20,6 +20,10 @@ class BattleController extends ChangeNotifier {
   bool showPlayerDamage = false;
   bool showEnemyDamage = false;
 
+  // Add flags for hurt animations
+  bool playerHurt = false;
+  bool enemyHurt = false;
+
   // Add death animation flags
   bool playerDying = false;
   bool enemyDying = false;
@@ -31,10 +35,21 @@ class BattleController extends ChangeNotifier {
   int currentDungeonLevel = 1;
   int maxDungeonLevels = 10;
 
+  // Turn management - player can only attack after enemy has attacked
+  bool playerCanAttack = true; // Initially true to allow first attack
+
+  // Add attack cooldown to prevent spam clicking
+  bool isAttackInProgress = false;
+  DateTime _lastAttackTime = DateTime.now();
+  final Duration _attackCooldown = Duration(
+    milliseconds: 400,
+  ); // 0.5 second cooldown
+
   void initBattle(Player p, Enemy e) {
     player = p;
     currentEnemy = e;
     isLoading = false;
+    playerCanAttack = true; // Reset to allow initial attack
     _logger.i("Battle initialized with Player and Enemy ${e.name}");
     notifyListeners();
   }
@@ -53,6 +68,28 @@ class BattleController extends ChangeNotifier {
   void processPlayerAttack() {
     if (player == null || currentEnemy == null) return;
     if (player!.isDead || currentEnemy!.isDead) return;
+
+    // Check if player is allowed to attack
+    if (!playerCanAttack) {
+      _logger.i("Player must wait for enemy's turn");
+      return;
+    }
+
+    // Check if attack is already in progress or on cooldown
+    final now = DateTime.now();
+    if (isAttackInProgress ||
+        now.difference(_lastAttackTime) < _attackCooldown) {
+      _logger.i("Attack is on cooldown");
+      return;
+    }
+
+    // Set attack in progress flag immediately
+    isAttackInProgress = true;
+    // Disable player attacks immediately
+    playerCanAttack = false;
+
+    // Update last attack time
+    _lastAttackTime = now;
 
     // Reset flags
     isPlayerAttacking = false;
@@ -75,12 +112,17 @@ class BattleController extends ChangeNotifier {
       enemyDamageReceived = damage;
       showEnemyDamage = true;
 
+      // Set flag to show enemy hurt animation
+      enemyHurt = true;
+
       // Check if enemy was defeated
       if (currentEnemy!.isDead) {
         enemyDying = true;
         // Set victory state
         isVictory = true;
         _addToBattleLog("Victory! ${currentEnemy!.name} was defeated!");
+        // Reset attack flags
+        isAttackInProgress = false;
       } else {
         // Enemy counterattack after a short delay
         Future.delayed(Duration(milliseconds: 500), () {
@@ -115,11 +157,21 @@ class BattleController extends ChangeNotifier {
         playerDamageReceived = healthBefore - player!.health;
         showPlayerDamage = true;
 
+        // Set flag to show player hurt animation
+        playerHurt = true;
+
         // Check for game over
         if (player!.isDead) {
           playerDying = true;
           _handleGameOver(false);
         }
+
+        // After enemy's turn, player can attack again after cooldown
+        Future.delayed(_attackCooldown, () {
+          playerCanAttack = true;
+          isAttackInProgress = false;
+          notifyListeners();
+        });
 
         // Reset animation flag
         showEnemyAttackAnimation = false;
@@ -132,7 +184,13 @@ class BattleController extends ChangeNotifier {
           stackTrace: stackTrace,
         );
         isEnemyAttacking = false;
-        notifyListeners();
+
+        // Reset attack flags even if there was an error
+        Future.delayed(_attackCooldown, () {
+          playerCanAttack = true;
+          isAttackInProgress = false;
+          notifyListeners();
+        });
       }
     });
   }

@@ -134,7 +134,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
                     onPressed:
-                        battleController.player?.isDead == true
+                        battleController.player?.isDead == true ||
+                                !battleController.playerCanAttack ||
+                                battleController.isAttackInProgress
                             ? null
                             : () => battleController.processPlayerAttack(),
                     style: ElevatedButton.styleFrom(

@@ -92,11 +92,16 @@ class EnemyComponent extends PositionComponent
       ),
     );
 
-    return SpriteAnimationComponent(
+    final component = SpriteAnimationComponent(
       animation: animation,
       size: Vector2(300, 300), // Doubled size (was 150, 150)
       anchor: Anchor.center,
     );
+
+    // Flip the enemy horizontally to face the player
+    component.scale = Vector2(-1, 1);
+
+    return component;
   }
 
   Future<void> _setupHealthBar() async {

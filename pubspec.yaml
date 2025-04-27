@@ -43,6 +43,8 @@ flutter:
   assets:
     - assets/images/dungeons/
     - assets/images/characters/
+    - assets/images/icons/
+    - assets/images/ui/
 
   # Commenting out fonts until they are available
   # fonts:

@@ -131,6 +131,13 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
           startPosition: playerComponent.position.clone()..y -= 50,
         ),
       );
+
+      // Play hurt animation when player takes damage
+      if (battleController.playerHurt) {
+        playerComponent.playHurtAnimation();
+        battleController.playerHurt = false; // Reset the flag
+      }
+
       battleController.showPlayerDamage = false; // Reset flag
     }
 
@@ -143,6 +150,13 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
           startPosition: enemyComponent.position.clone()..y -= 50,
         ),
       );
+
+      // Play hurt animation when enemy takes damage
+      if (battleController.enemyHurt) {
+        enemyComponent.playHurtAnimation();
+        battleController.enemyHurt = false; // Reset the flag
+      }
+
       battleController.showEnemyDamage = false; // Reset flag
     }
 
@@ -167,6 +181,12 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
 
     // Don't process attacks if victory achieved
     if (battleController.isVictory) return;
+
+    // Don't allow player to attack if it's not their turn
+    if (!battleController.playerCanAttack) {
+      // Optional: could add visual feedback to indicate player must wait
+      return;
+    }
 
     if (!isPlayerDead &&
         !isEnemyDead &&

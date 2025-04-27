@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-class DungeonLevelTracker extends PositionComponent {
+class DungeonLevelTracker extends PositionComponent with HasGameReference {
   final int currentLevel;
   final int maxLevels;
   final double circleRadius;
@@ -10,7 +10,7 @@ class DungeonLevelTracker extends PositionComponent {
   DungeonLevelTracker({
     required this.currentLevel,
     required this.maxLevels,
-    this.circleRadius = 20,
+    this.circleRadius = 100, // Increased from 20 to 25
     this.lineThickness = 5,
     super.position,
     super.priority = 10,
@@ -24,7 +24,7 @@ class DungeonLevelTracker extends PositionComponent {
     _addConnectingLines();
 
     // Draw the level circles
-    _addLevelCircles();
+    await _addLevelCircles();
   }
 
   void _addConnectingLines() {
@@ -47,15 +47,22 @@ class DungeonLevelTracker extends PositionComponent {
     );
   }
 
-  void _addLevelCircles() {
+  Future<void> _addLevelCircles() async {
+    // Preload the boss icon
+    final bossIconImage = await game.images.load('icons/boss_icon.png');
+
     for (int i = 1; i <= maxLevels; i++) {
       bool isCompleted = i < currentLevel;
       bool isCurrent = i == currentLevel;
+      bool isBossLevel = i == 5; // Check if this is the boss level (level 5)
 
       // Get appropriate colors based on completion status
       Color circleColor =
-          isCompleted ? Colors.green : (isCurrent ? Colors.amber : Colors.red);
-
+          isCompleted
+              ? Colors.green
+              : (isCurrent
+                  ? Colors.amber
+                  : const Color.fromARGB(255, 219, 44, 167));
       Color textColor = Colors.white;
 
       // Position each circle
@@ -78,7 +85,7 @@ class DungeonLevelTracker extends PositionComponent {
             anchor: Anchor.center,
             paint:
                 Paint()
-                  ..color = Colors.amber.withAlpha(77) // 0.3 * 255 ≈ 77
+                  ..color = Colors.amber.withAlpha(77)
                   ..style = PaintingStyle.stroke
                   ..strokeWidth = 3,
           ),
@@ -88,21 +95,49 @@ class DungeonLevelTracker extends PositionComponent {
       // Add the circle
       add(circle);
 
-      // Add the level number
-      final textComponent = TextComponent(
-        text: '$i',
-        textRenderer: TextPaint(
-          style: TextStyle(
-            color: textColor,
-            fontSize: circleRadius * 0.8,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        anchor: Anchor.center,
-        position: position,
-      );
+      // Add special highlight for boss level
+      if (isBossLevel) {
+        // Add a decorative flair to make the boss level more noticeable
+        final bossHighlight = CircleComponent(
+          radius: circleRadius + 3,
+          position: position,
+          anchor: Anchor.center,
+          paint:
+              Paint()
+                ..color = Colors.purple.withAlpha(100)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 2,
+        );
+        add(bossHighlight);
 
-      add(textComponent);
+        // Add boss icon sprite instead of text
+        final bossIcon = SpriteComponent(
+          sprite: Sprite(bossIconImage),
+          size: Vector2(
+            circleRadius * 1.5,
+            circleRadius * 1.5,
+          ), // Slightly larger than the circle
+          position: position,
+          anchor: Anchor.center,
+        );
+        add(bossIcon);
+      } else {
+        // Add the level number for non-boss levels
+        final textComponent = TextComponent(
+          text: '$i',
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: textColor,
+              fontSize: circleRadius * 0.8,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          anchor: Anchor.center,
+          position: position,
+        );
+
+        add(textComponent);
+      }
     }
   }
 

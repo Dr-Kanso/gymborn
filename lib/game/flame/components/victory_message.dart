@@ -1,97 +1,96 @@
 import 'dart:math';
-
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-class VictoryMessage extends PositionComponent with TapCallbacks {
+class VictoryMessage extends PositionComponent
+    with TapCallbacks, HasGameReference {
   final String message;
   final Function? onNextLevel;
-  late TextComponent _textComponent;
-  late TextComponent _subtitleComponent;
   final math.Random _random = math.Random();
+  late SpriteAnimationComponent _victoryAnimation;
 
   VictoryMessage({
     required this.message,
     required Vector2 screenSize,
     this.onNextLevel,
     super.priority = 10,
-  }) : super(position: Vector2(screenSize.x / 2, screenSize.y * 0.4)) {
-    // Create main text component with larger text
-    _textComponent = TextComponent(
-      text: message.split("\n")[0], // Get the main title part
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.amber,
-          fontSize: 48.0,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(blurRadius: 15, color: Colors.orange, offset: Offset(2, 2)),
-            Shadow(blurRadius: 30, color: Colors.red, offset: Offset(4, 4)),
-          ],
-        ),
-      ),
-      anchor: Anchor.center,
-    );
+  }) : super(
+         // Position component at the exact center of the screen
+         position: Vector2(screenSize.x / 2, screenSize.y / 2),
+         // Set anchor to center to ensure proper centering
+         anchor: Anchor.center,
+       );
 
-    // Create subtitle with smaller text if there's a second line
-    final parts = message.split("\n");
-    if (parts.length > 1) {
-      _subtitleComponent = TextComponent(
-        text: parts[1],
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 28.0,
-            fontWeight: FontWeight.w500,
-            shadows: [
-              Shadow(blurRadius: 8, color: Colors.black, offset: Offset(2, 2)),
-            ],
-          ),
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    try {
+      // Load the custom animation from the JSON file
+      final sprites = await game.images.load('ui/level_cleared.png');
+      final animation = SpriteAnimation.fromFrameData(
+        sprites,
+        SpriteAnimationData.sequenced(
+          amount: 40, // 40 frames in the JSON file
+          stepTime: 0.05,
+          textureSize: Vector2(858, 399), // Size from the JSON
+          loop: false,
         ),
+      );
+
+      // Create and add the animation component - center it within this component
+      _victoryAnimation = SpriteAnimationComponent(
+        animation: animation,
+        size: Vector2(858, 399) * 0.8, // Scale down slightly
         anchor: Anchor.center,
-        position: Vector2(0, 60), // Position below main text
+        position: Vector2.zero(), // Center in parent
       );
-      add(_subtitleComponent);
-    }
+      add(_victoryAnimation);
 
-    // Add the main text component
-    add(_textComponent);
+      // Calculate appropriate position for button - below the animation
+      final buttonY =
+          _victoryAnimation.size.y / 2 + 40; // Half animation height + spacing
 
-    // Add Next Level button if callback provided
-    if (onNextLevel != null) {
-      // Create a custom button component with tap handling
-      final buttonComponent = _NextLevelButtonComponent(
-        onNextLevel: onNextLevel!,
-        position: Vector2(0, 120),
-        anchor: Anchor.center,
-        size: Vector2(220, 60), // Larger button size
-      );
+      // Add Next Level button if callback provided
+      if (onNextLevel != null) {
+        final buttonComponent = _NextLevelButtonComponent(
+          onNextLevel: onNextLevel!,
+          position: Vector2(
+            0,
+            buttonY,
+          ), // Centered horizontally, positioned below animation
+          anchor: Anchor.center,
+          size: Vector2(220, 60),
+        );
 
-      // Add pulsing effect with smoother animation
-      buttonComponent.add(
-        ScaleEffect.by(
-          Vector2.all(1.05), // Subtle scale change
-          EffectController(
-            duration: 0.8,
-            reverseDuration: 0.8,
-            infinite: true,
-            curve: Curves.easeInOut,
+        buttonComponent.add(
+          ScaleEffect.by(
+            Vector2.all(1.05), // Subtle scale change
+            EffectController(
+              duration: 0.8,
+              reverseDuration: 0.8,
+              infinite: true,
+              curve: Curves.easeInOut,
+            ),
           ),
-        ),
-      );
+        );
 
-      add(buttonComponent);
+        add(buttonComponent);
+      }
+
+      // Add celebration effects
+      _addCelebrationEffects();
+    } catch (e) {
+      debugPrint('Error setting up victory message: $e');
     }
-
-    // Add simple celebration effects
-    _addCelebrationEffects(screenSize);
   }
 
-  void _addCelebrationEffects(Vector2 screenSize) {
-    // Add floating confetti instead of complex particles
+  void _addCelebrationEffects() {
+    // Add floating confetti for extra celebration
+    final screenSize = game.size;
     for (int i = 0; i < 30; i++) {
       final confetti = _createConfetti();
       confetti.position = Vector2(
@@ -151,43 +150,11 @@ class VictoryMessage extends PositionComponent with TapCallbacks {
     ];
     return colors[_random.nextInt(colors.length)];
   }
-
-  // Animation variables
-  double _time = 0;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-
-    // Update animation time
-    _time += dt;
-
-    // Create pulsing and floating effect
-    final pulseFactor = 1.0 + 0.1 * math.sin(_time * 3);
-    final floatOffset = 5 * math.sin(_time * 2);
-
-    // Apply effects to text
-    _textComponent.scale = Vector2.all(pulseFactor);
-    _textComponent.position.y = floatOffset;
-
-    // Apply color cycling effect
-    final hue = (_time * 20) % 360;
-    _textComponent.textRenderer = TextPaint(
-      style: TextStyle(
-        color: HSVColor.fromAHSV(1.0, hue, 0.7, 1.0).toColor(),
-        fontSize: 48.0,
-        fontWeight: FontWeight.bold,
-        shadows: [
-          Shadow(blurRadius: 15, color: Colors.orange, offset: Offset(2, 2)),
-          Shadow(blurRadius: 30, color: Colors.red, offset: Offset(4, 4)),
-        ],
-      ),
-    );
-  }
 }
 
 // Enhanced custom component for the button
-class _NextLevelButtonComponent extends PositionComponent with TapCallbacks {
+class _NextLevelButtonComponent extends PositionComponent
+    with TapCallbacks, HasGameReference {
   final Function onNextLevel;
 
   _NextLevelButtonComponent({
@@ -201,79 +168,29 @@ class _NextLevelButtonComponent extends PositionComponent with TapCallbacks {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Add pulsating glow behind the button
-    final glowEffect = _GlowComponent(
-      size: Vector2(size.x + 16, size.y + 16),
-      position: Vector2(-8, -8),
-      color: Colors.amber,
-      innerRadius: 12,
-    );
-    add(glowEffect);
+    try {
+      // Replace complex button building with a simple sprite
+      final buttonSprite = await game.images.load('ui/next_level_button.png');
+      final buttonComponent = SpriteComponent(
+        sprite: Sprite(buttonSprite),
+        size: size,
+        anchor: Anchor.center,
+      );
 
-    // Create button with rounded corners and gradient
-    final buttonBackground = _GradientRectComponent(
-      size: size,
-      startColor: const Color(0xFF4CAF50), // Material green
-      endColor: const Color(0xFF2E7D32), // Dark green
-      borderRadius: 12,
-    );
+      // Add the sprite to the component
+      add(buttonComponent);
 
-    // Add button border
-    final buttonBorder = _RoundedRectangleComponent(
-      size: Vector2(size.x, size.y),
-      paint:
-          Paint()
-            ..color = Colors.yellow
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.0,
-      radius: 12,
-    );
-
-    // Create container for text and arrow to ensure proper centering
-    final textContainer = PositionComponent(
-      size: size,
-      position: Vector2.zero(),
-    );
-
-    // Button text with appropriate styling (centered in container)
-    final buttonText = TextComponent(
-      text: "NEXT LEVEL",
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.2,
-          shadows: [
-            Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 2),
-          ],
-        ),
-      ),
-      anchor: Anchor.center,
-      position: Vector2(size.x / 2, size.y / 2), // Center in container
-    );
-
-    // Add decorative arrow icon
-    final arrowIcon = TextComponent(
-      text: "→",
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      anchor: Anchor.centerLeft,
-      position: Vector2(size.x - 35, size.y / 2), // Right-aligned
-    );
-
-    // Build the button
-    add(buttonBackground);
-    add(buttonBorder);
-    // Add container with centered elements
-    textContainer.add(buttonText);
-    textContainer.add(arrowIcon);
-    add(textContainer);
+      // Add a glowing effect
+      final glowEffect = _GlowComponent(
+        size: Vector2(size.x + 16, size.y + 16),
+        position: Vector2(-8, -8),
+        color: Colors.amber,
+        innerRadius: 12,
+      );
+      add(glowEffect);
+    } catch (e) {
+      debugPrint('Error loading Next Level button: $e');
+    }
   }
 
   @override
@@ -293,7 +210,7 @@ class _NextLevelButtonComponent extends PositionComponent with TapCallbacks {
   }
 }
 
-// Add a new glow component that animates itself without using OpacityEffect
+// Glow component for button effects
 class _GlowComponent extends CustomPainterComponent {
   final Color color;
   final double innerRadius;
@@ -301,7 +218,7 @@ class _GlowComponent extends CustomPainterComponent {
 
   _GlowComponent({
     required super.size,
-    super.position,
+    required super.position,
     required this.color,
     required this.innerRadius,
   }) : super(painter: _GlowPainter(color, innerRadius, 0.0));
@@ -335,14 +252,11 @@ class _GlowPainter extends CustomPainter {
     );
 
     // Create a glow effect with a gradient
-    // Fix deprecation by using .withOpacity instead of .withAlpha
     final paint =
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 4.0
-          ..color = color.withOpacity(
-            intensity,
-          ); // Fixed: use withOpacity instead of withAlpha
+          ..color = color.withAlpha((255 * intensity).round());
 
     canvas.drawRRect(rrect, paint);
   }
@@ -352,91 +266,5 @@ class _GlowPainter extends CustomPainter {
     return color != oldPainter.color ||
         innerRadius != oldPainter.innerRadius ||
         intensity != oldPainter.intensity;
-  }
-}
-
-// Custom component for rounded rectangles (since RectangleComponent doesn't support borderRadius)
-class _RoundedRectangleComponent extends CustomPainterComponent {
-  final Paint paint;
-  final double radius;
-
-  _RoundedRectangleComponent({
-    required Vector2 size,
-    required this.paint,
-    required this.radius,
-    Vector2? position,
-    Anchor? anchor,
-  }) : super(
-         size: size,
-         position: position,
-         anchor: anchor ?? Anchor.topLeft, // Provide default anchor if null
-         painter: _RoundedRectPainter(paint, radius),
-       );
-}
-
-class _RoundedRectPainter extends CustomPainter {
-  final Paint _paint;
-  final double radius;
-
-  _RoundedRectPainter(this._paint, this.radius);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final rRect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
-    canvas.drawRRect(rRect, _paint);
-  }
-
-  @override
-  bool shouldRepaint(_RoundedRectPainter oldPainter) {
-    return _paint != oldPainter._paint || radius != oldPainter.radius;
-  }
-}
-
-// Custom component for gradient rectangle with rounded corners
-class _GradientRectComponent extends CustomPainterComponent {
-  final Color startColor;
-  final Color endColor;
-  final double borderRadius;
-
-  _GradientRectComponent({
-    required Vector2 size,
-    required this.startColor,
-    required this.endColor,
-    this.borderRadius = 0,
-  }) : super(
-         size: size,
-         painter: _GradientRectPainter(startColor, endColor, borderRadius),
-       );
-}
-
-class _GradientRectPainter extends CustomPainter {
-  final Color startColor;
-  final Color endColor;
-  final double borderRadius;
-
-  _GradientRectPainter(this.startColor, this.endColor, this.borderRadius);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final rRect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
-
-    final paint =
-        Paint()
-          ..shader = LinearGradient(
-            colors: [startColor, endColor],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ).createShader(rect);
-
-    canvas.drawRRect(rRect, paint);
-  }
-
-  @override
-  bool shouldRepaint(_GradientRectPainter oldPainter) {
-    return startColor != oldPainter.startColor ||
-        endColor != oldPainter.endColor ||
-        borderRadius != oldPainter.borderRadius;
   }
 }
