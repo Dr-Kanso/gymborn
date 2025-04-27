@@ -27,11 +27,26 @@ class BattleController extends ChangeNotifier {
   // Victory state
   bool isVictory = false;
 
+  // Dungeon level tracking
+  int currentDungeonLevel = 1;
+  int maxDungeonLevels = 10;
+
   void initBattle(Player p, Enemy e) {
     player = p;
     currentEnemy = e;
     isLoading = false;
     _logger.i("Battle initialized with Player and Enemy ${e.name}");
+    notifyListeners();
+  }
+
+  // Add method to advance to the next dungeon level
+  void advanceToDungeonLevel(int level) {
+    if (level > maxDungeonLevels) return;
+
+    currentDungeonLevel = level;
+    isVictory = false;
+    // You could generate new enemies here based on level
+
     notifyListeners();
   }
 
@@ -124,7 +139,15 @@ class BattleController extends ChangeNotifier {
 
   void _handleGameOver(bool playerWon) {
     _logger.i("Game over. Player ${playerWon ? 'won' : 'lost'}");
-    // Additional game over logic here
+
+    // If player won, mark the current level as completed
+    if (playerWon && currentDungeonLevel < maxDungeonLevels) {
+      // Level complete - could auto-advance or wait for player input
+      // For now, we'll just set a flag that the UI can respond to
+      isVictory = true;
+    }
+
+    notifyListeners();
   }
 
   // Method to log battle events

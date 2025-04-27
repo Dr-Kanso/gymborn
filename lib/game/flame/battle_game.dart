@@ -7,6 +7,7 @@ import 'entities/enemy_component.dart';
 import 'entities/background_component.dart';
 import 'components/damage_indicator.dart';
 import 'components/victory_message.dart';
+import 'components/dungeon_level_tracker.dart';
 
 class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
   final BattleController battleController;
@@ -26,6 +27,8 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
 
   bool _victoryProcessed = false;
 
+  late DungeonLevelTracker levelTracker;
+
   BattleGame(this.battleController);
 
   @override
@@ -35,6 +38,28 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
     // Load background
     backgroundComponent = BackgroundComponent();
     add(backgroundComponent);
+
+    // Set maximum dungeon levels to 5
+    battleController.maxDungeonLevels = 5;
+
+    // Calculate offset to center the middle (3rd) level
+    const int numberOfLevels = 5;
+    const double circleRadius = 15;
+    const double spacing = circleRadius * 2.5;
+
+    // Position of the middle level (3rd = index 2) from the left of the tracker
+    final double middleLevelPosition = ((numberOfLevels - 1) / 2) * spacing;
+
+    // Add level tracker with the 3rd level centered
+    levelTracker = DungeonLevelTracker(
+      currentLevel: battleController.currentDungeonLevel,
+      maxLevels: numberOfLevels,
+      // Offset the entire tracker to center the middle level
+      position: Vector2(size.x / 2 - middleLevelPosition, 40),
+      priority: 100,
+      circleRadius: circleRadius,
+    );
+    add(levelTracker);
 
     // Load player and enemy sprites
     final player = battleController.player;
@@ -55,6 +80,11 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
   }
 
   void _handleBattleStateChange() {
+    // Update level tracker when dungeon level changes
+    if (levelTracker.currentLevel != battleController.currentDungeonLevel) {
+      levelTracker.updateLevel(battleController.currentDungeonLevel);
+    }
+
     // Handle victory state
     if (battleController.isVictory && !_victoryProcessed) {
       _victoryProcessed = true;
@@ -64,9 +94,18 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
         // Play celebration animation
         playerComponent.playCelebrateAnimation();
 
-        // Show victory message
+        // Show victory message with next level option
         add(
-          VictoryMessage(message: "VICTORY!\nEnemy Defeated", screenSize: size),
+          VictoryMessage(
+            message: "VICTORY!\nEnemy Defeated",
+            screenSize: size,
+            onNextLevel: () {
+              battleController.advanceToDungeonLevel(
+                battleController.currentDungeonLevel + 1,
+              );
+              _victoryProcessed = false;
+            },
+          ),
         );
       });
     }

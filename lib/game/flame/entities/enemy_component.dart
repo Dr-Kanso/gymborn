@@ -21,7 +21,7 @@ class EnemyComponent extends PositionComponent
 
   late TextComponent _healthText;
   late RectangleComponent _healthBar;
-  late RectangleComponent _healthBarBackground;
+  // late RectangleComponent _healthBarBackground; // Removed as it's not used
 
   bool _isAttacking = false;
   bool _isHurt = false;
@@ -102,11 +102,11 @@ class EnemyComponent extends PositionComponent
   Future<void> _setupHealthBar() async {
     // Remove visible health bars since we're showing them in the UI
     // Keep the components initialized but don't add them to the component
-    _healthBarBackground = RectangleComponent(
-      size: Vector2(120, 12),
-      paint: Paint()..color = Colors.grey.shade300,
-      position: Vector2(0, -40),
-    );
+    // _healthBarBackground = RectangleComponent( // Removed as it's not used
+    //   size: Vector2(120, 12),
+    //   paint: Paint()..color = Colors.grey.shade300,
+    //   position: Vector2(0, -40),
+    // );
 
     _healthBar = RectangleComponent(
       size: Vector2(120 * (enemy.health / enemy.maxHealth), 12),
