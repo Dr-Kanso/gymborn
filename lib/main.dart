@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/stats_provider.dart';
 import 'providers/gym_provider.dart';
 import 'providers/location_provider.dart';
+import 'game/controllers/battle_controller.dart';
 import 'frontend_screens/auth/login_screen.dart';
 import 'frontend_screens/dashboard/dashboard_screen.dart';
 import 'game/ui/game_screen.dart';
@@ -23,6 +24,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => StatsProvider()),
         ChangeNotifierProvider(create: (_) => GymProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
+        ChangeNotifierProvider(create: (_) => BattleController()),
       ],
       child: const MyApp(),
     ),
@@ -47,10 +49,11 @@ class MyApp extends StatelessWidget {
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
-          builder: (context) => Scaffold(
-            appBar: AppBar(title: const Text('Not Found')),
-            body: const Center(child: Text('Page not found')),
-          ),
+          builder:
+              (context) => Scaffold(
+                appBar: AppBar(title: const Text('Not Found')),
+                body: const Center(child: Text('Page not found')),
+              ),
         );
       },
     );

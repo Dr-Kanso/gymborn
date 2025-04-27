@@ -15,7 +15,6 @@ dependencies:
   cloud_firestore: ^5.6.6
   firebase_storage: ^12.4.5
   provider: ^6.1.4
-  # google_maps_flutter: ^2.12.1  # Removed
   flutter_map: ^6.1.0  # OpenStreetMap library based on Leaflet
   latlong2: ^0.9.0     # For handling lat/long coordinates
   geolocator: ^14.0.0
@@ -40,20 +39,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Assets
   assets:
-    - assets/images/
-    - assets/images/characters/
     - assets/images/dungeons/
-    #- assets/images/raids/
-    #- assets/images/fortress/
-    #- assets/images/marketplace/
-    #- assets/images/synergy_cards/
-    #- assets/images/gym_checkin/
-    #- assets/images/ui/
-    #- assets/icons/
-    #- assets/sfx/
-    #- assets/animations/
-    #- assets/fonts/
+    - assets/images/characters/
 
   # Commenting out fonts until they are available
   # fonts:

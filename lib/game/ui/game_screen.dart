@@ -1,11 +1,12 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import for orientation control
 import 'package:provider/provider.dart';
 
-import '../engine/gym_game.dart';
-import '../../providers/stats_provider.dart';
-import '../../themes/theme.dart';
+import '../controllers/battle_controller.dart';
+import '../models/player.dart';
+import '../models/enemy.dart';
+import '../flame/battle_game.dart';
+import 'widgets/battle_status_panel.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -14,147 +15,141 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
-  late GymGame _game;
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+  BattleGame? _battleGame;
 
   @override
   void initState() {
     super.initState();
-    // Force landscape orientation when entering game
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    _setupGame();
+
+    // Initialize battle if needed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final battleController = Provider.of<BattleController>(
+        context,
+        listen: false,
+      );
+
+      if (battleController.player == null ||
+          battleController.currentEnemy == null) {
+        // Create default player and enemy for testing if they don't exist
+        final player = Player(
+          name: "Player",
+          initialHealth: 100,
+          maxHealth: 100,
+        );
+        final enemy = Enemy(
+          name: "Goblin",
+          health: 50,
+          maxHealth: 50,
+          strength: 5,
+        );
+        battleController.initBattle(player, enemy);
+      }
+    });
   }
 
   @override
   void dispose() {
-    // Force portrait orientation when leaving the game
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    // Properly dispose of the game instance
+    _battleGame?.removeFromParent();
+    _battleGame = null;
     super.dispose();
   }
 
-  void _setupGame() {
-    final statsProvider = Provider.of<StatsProvider>(context, listen: false);
-    _game = GymGame(statsProvider: statsProvider);
+  // Add onWillPop handler
+  Future<bool> _onWillPop() async {
+    // Show a confirmation dialog before leaving the battle
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Leave Battle?'),
+            content: const Text(
+              'Are you sure you want to leave the battle? Progress will be lost.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Stay'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Leave'),
+              ),
+            ],
+          ),
+    );
+    return shouldExit ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dungeon Adventure'),
-        backgroundColor: kPrimaryColor,
-      ),
-      body: GameWidget<GymGame>(
-        game: _game,
-        loadingBuilder: (context) => const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading Dungeon...'),
-            ],
-          ),
-        ),
-        overlayBuilderMap: {
-          'touchControls': (context, game) {
-            return Positioned(
-              bottom: 20,
-              left: 20,
-              child: joystickComponent(
-                onDirectionChanged: (direction) {
-                  game.player.move(direction);
-                },
-              ),
-            );
+    return Consumer<BattleController>(
+      builder: (context, battleController, child) {
+        // Initialize the battle game if it hasn't been created yet
+        _battleGame ??= BattleGame(battleController);
+
+        return PopScope(
+          canPop: false, // Prevent immediate pop
+          onPopInvoked: (bool didPop) async {
+            if (didPop) {
+              return; // Pop already happened or is happening, do nothing.
+            }
+            // Pop was prevented by canPop: false. Show confirmation dialog.
+            final bool shouldPop = await _onWillPop();
+            if (shouldPop && context.mounted) {
+              // If user confirmed, manually pop the route.
+              Navigator.of(context).pop();
+            }
           },
-          'attackButton': (context, game) {
-            return Positioned(
-              bottom: 30,
-              right: 30,
-              child: GestureDetector(
-                onTap: () => game.player.attack(),
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor.withAlpha((0.7 * 255).round()),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.flash_on,
-                    color: Colors.white,
-                    size: 30,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Battle')),
+            body: Column(
+              children: [
+                // Flame game view (takes most of the screen)
+                Expanded(
+                  flex: 7,
+                  child: GameWidget(
+                    game: _battleGame!,
+                    loadingBuilder:
+                        (context) =>
+                            const Center(child: CircularProgressIndicator()),
+                    errorBuilder:
+                        (context, error) => Center(
+                          child: Text(
+                            'Error: $error',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
                   ),
                 ),
-              ),
-            );
-          },
-        },
-      ),
-    );
-  }
 
-  // Create a joystick component for touch controls (renamed to lowerCamelCase)
-  Widget joystickComponent({required Function(Vector2) onDirectionChanged}) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        Vector2 direction = Vector2.zero();
+                // New Battle Status Panel
+                BattleStatusPanel(controller: battleController),
 
-        return Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            color: kPrimaryColor.withAlpha((0.2 * 255).round()),
-            shape: BoxShape.circle,
-          ),
-          child: GestureDetector(
-            onPanStart: (details) {
-              final center = const Offset(60, 60);
-              final touchPosition = details.localPosition;
-              direction = Vector2(
-                touchPosition.dx - center.dx,
-                touchPosition.dy - center.dy,
-              );
-              direction = direction.normalized();
-              onDirectionChanged(direction);
-              setState(() {});
-            },
-            onPanUpdate: (details) {
-              final center = const Offset(60, 60);
-              final touchPosition = details.localPosition;
-              direction = Vector2(
-                touchPosition.dx - center.dx,
-                touchPosition.dy - center.dy,
-              );
-              direction = direction.normalized();
-              onDirectionChanged(direction);
-              setState(() {});
-            },
-            onPanEnd: (details) {
-              direction = Vector2.zero();
-              onDirectionChanged(direction);
-              setState(() {});
-            },
-            child: Center(
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withAlpha((0.8 * 255).round()),
-                  shape: BoxShape.circle,
+                // Simplified controls at the bottom
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    onPressed:
+                        battleController.player?.isDead == true
+                            ? null
+                            : () => battleController.processPlayerAttack(),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(200, 50),
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text(
+                      'ATTACK',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-                margin: EdgeInsets.only(
-                  left: direction.x * 30,
-                  top: direction.y * 30,
-                ),
-              ),
+              ],
             ),
           ),
         );
