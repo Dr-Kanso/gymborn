@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../controllers/battle_controller.dart';
 import '../models/player.dart';
-import '../models/enemy.dart';
 import '../flame/battle_game.dart';
 import 'widgets/battle_status_panel.dart';
 
@@ -39,13 +38,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           initialHealth: 100,
           maxHealth: 100,
         );
-        final enemy = Enemy(
-          name: "Goblin",
-          health: 50,
-          maxHealth: 50,
-          strength: 5,
-        );
-        battleController.initBattle(player, enemy);
+        // Just initialize the battle with the player
+        // The BattleController will create enemies internally
+        battleController.initBattle(player);
+
+        // Note: The enemy is created inside the BattleController during initBattle
+        // so we don't need to create one here
       }
     });
   }

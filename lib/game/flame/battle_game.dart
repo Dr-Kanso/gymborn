@@ -86,6 +86,9 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
     // Update level tracker when dungeon level changes
     if (levelTracker.currentLevel != battleController.currentDungeonLevel) {
       levelTracker.updateLevel(battleController.currentDungeonLevel);
+      debugPrint(
+        'Level tracker updated to level ${battleController.currentDungeonLevel}',
+      );
     }
 
     // Handle victory state
@@ -106,6 +109,38 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
               battleController.advanceToDungeonLevel(
                 battleController.currentDungeonLevel + 1,
               );
+              _victoryProcessed = false;
+            },
+          ),
+        );
+      });
+    }
+
+    // Add this code to handle level completion
+    if (battleController.state == BattleState.levelComplete &&
+        !_victoryProcessed) {
+      _victoryProcessed = true;
+
+      // Add some delay before showing victory message
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        // Show victory message with next level option
+        add(
+          VictoryMessage(
+            message:
+                battleController.currentDungeonLevel <
+                        battleController.maxDungeonLevels
+                    ? "LEVEL COMPLETE!"
+                    : "ALL LEVELS COMPLETE!",
+            screenSize: size,
+            onNextLevel: () {
+              if (battleController.currentDungeonLevel <
+                  battleController.maxDungeonLevels) {
+                battleController.advanceToDungeonLevel(
+                  battleController.currentDungeonLevel + 1,
+                );
+              } else {
+                battleController.reset();
+              }
               _victoryProcessed = false;
             },
           ),
@@ -187,12 +222,17 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
     if (battleController.isVictory) return;
 
     // Check if the player can attack via the controller
-    if (battleController.playerCanAttack && !battleController.isAttackInProgress) {
-      debugPrint('Conditions met, calling battleController.processPlayerAttack()');
+    if (battleController.playerCanAttack &&
+        !battleController.isAttackInProgress) {
+      debugPrint(
+        'Conditions met, calling battleController.processPlayerAttack()',
+      );
       // Trigger the attack via the BattleController
       battleController.processPlayerAttack();
     } else {
-      debugPrint('Attack conditions not met: playerCanAttack=${battleController.playerCanAttack}, isAttackInProgress=${battleController.isAttackInProgress}');
+      debugPrint(
+        'Attack conditions not met: playerCanAttack=${battleController.playerCanAttack}, isAttackInProgress=${battleController.isAttackInProgress}',
+      );
     }
 
     // Don't allow player to attack if it's not their turn
