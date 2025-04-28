@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/battle_controller.dart';
+import 'image_health_bar_widget.dart'; // Import the new widget
 
 class BattleStatusPanel extends StatelessWidget {
   final BattleController controller;
@@ -15,6 +16,11 @@ class BattleStatusPanel extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Define desired width for the health bars in the panel
+    const double healthBarWidth = 200.0; // Changed from 120.0
+    // Define desired height or let it be determined by aspect ratio via width
+    const double healthBarHeight = 20.0; // Adjust as needed, or set to null
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -27,6 +33,7 @@ class BattleStatusPanel extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // Prevent column from taking extra space
               children: [
                 Text(
                   player.name,
@@ -37,12 +44,15 @@ class BattleStatusPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                _buildHealthBar(
-                  current: player.health,
-                  max: player.maxHealth,
-                  color: Colors.green,
+                // Replace _buildHealthBar with ImageHealthBarWidget
+                ImageHealthBarWidget(
+                  currentHealth: player.health,
+                  maxHealth: player.maxHealth,
+                  width: healthBarWidth,
+                  height: healthBarHeight,
                 ),
                 const SizedBox(height: 2),
+                // Keep or remove HP text based on your preference
                 Text(
                   'HP: ${player.health}/${player.maxHealth}',
                   style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -51,19 +61,14 @@ class BattleStatusPanel extends StatelessWidget {
             ),
           ),
 
-          // VS indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade800,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'VS',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+          // VS indicator - replaced with image
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Image.asset(
+              'assets/images/ui/vs.png',
+              height: 20.0, // Adjust height as needed
+              width: 20.0,  // Adjust width as needed
+              fit: BoxFit.contain,
             ),
           ),
 
@@ -71,6 +76,7 @@ class BattleStatusPanel extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min, // Prevent column from taking extra space
               children: [
                 Text(
                   enemy.name,
@@ -81,13 +87,15 @@ class BattleStatusPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                _buildHealthBar(
-                  current: enemy.health,
-                  max: enemy.maxHealth,
-                  color: Colors.red,
-                  reverse: true,
+                // Replace _buildHealthBar with ImageHealthBarWidget
+                ImageHealthBarWidget(
+                  currentHealth: enemy.health,
+                  maxHealth: enemy.maxHealth,
+                  width: healthBarWidth,
+                  height: healthBarHeight,
                 ),
                 const SizedBox(height: 2),
+                // Keep or remove HP text based on your preference
                 Text(
                   'HP: ${enemy.health}/${enemy.maxHealth}',
                   style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -96,44 +104,6 @@ class BattleStatusPanel extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHealthBar({
-    required int current,
-    required int max,
-    required Color color,
-    bool reverse = false,
-  }) {
-    final percentage = (current / max).clamp(0.0, 1.0);
-
-    return Container(
-      height: 12,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        color: Colors.grey.shade800,
-      ),
-      child: Align(
-        alignment: reverse ? Alignment.centerRight : Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: percentage,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              color: color,
-              gradient: LinearGradient(
-                colors: [
-                  color,
-                  color.withAlpha(179), // 0.7 * 255 ≈ 179
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

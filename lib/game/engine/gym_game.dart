@@ -29,6 +29,7 @@ class GymGame extends FlameGame
   double gameScore = 0;
   int enemiesDefeated = 0;
   bool gameOver = false;
+  int currentLevel = 1; // Track current level
 
   GymGame({required this.statsProvider, this.playableArea}); // Updated constructor
 
@@ -63,16 +64,15 @@ class GymGame extends FlameGame
     // Add player
     player = Player(statsProvider: statsProvider);
     
-    // Position player within the blue box region shown in the screenshot
+    // Position player within the blue box region
     if (playableArea != null) {
-      // Calculate the blue box region - it's in the upper-left quarter of the playable area
+      // Calculate the blue box region
       double leftEdge = playableArea!.leftMargin;
       double topEdge = playableArea!.topMargin;
       double playableWidth = size.x - playableArea!.leftMargin - playableArea!.rightMargin;
       double playableHeight = size.y - playableArea!.topMargin - playableArea!.bottomMargin;
       
-      // The blue circle appears to be centered in the blue box
-      // Approximately at 25% of playable width and 25% of playable height from the top-left
+      // Position the player
       double blueBoxX = leftEdge + (playableWidth * 0.15); 
       double blueBoxY = topEdge + (playableHeight * 0.25);
       
@@ -82,13 +82,10 @@ class GymGame extends FlameGame
       player.position = Vector2(size.x / 2, size.y / 2);
     }
 
-    // Remove boundary setting here - will be set by DungeonWorld using playableArea
-    // Don't set player.setBoundaries here as it will be set by DungeonWorld
-
     add(player);
     _isPlayerInitialized = true;
 
-    // Add dungeon world (which will handle enemies and obstacles)
+    // Add dungeon world
     add(DungeonWorld(
       statsProvider: statsProvider,
       playableArea: playableArea,
@@ -120,7 +117,9 @@ class GymGame extends FlameGame
 
     // Enable overlays for controls
     overlays.add('touchControls');
-    overlays.add('attackButton');
+
+    // Make sure tap events are properly detected
+    debugPrint('GymGame loaded - tap detection should be active');
   }
 
   void updateScore() {
@@ -129,7 +128,6 @@ class GymGame extends FlameGame
       orElse: () => TextComponent(),
     );
 
-    // Remove null check as text can't be null
     scoreComponent.text = 'Score: ${gameScore.toInt()}';
   }
 
@@ -137,9 +135,7 @@ class GymGame extends FlameGame
   void update(double dt) {
     super.update(dt);
 
-    // Check if player is initialized before accessing
     if (_isPlayerInitialized && !gameOver) {
-      // Update camera to follow player
       camera.moveTo(player.position);
     }
   }
@@ -149,13 +145,11 @@ class GymGame extends FlameGame
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    // Skip key handling if player not initialized yet or game is over
     if (!_isPlayerInitialized || gameOver) {
       return KeyEventResult.handled;
     }
 
     final isKeyDown = event is KeyDownEvent;
-
     Vector2 direction = Vector2.zero();
 
     if (keysPressed.contains(LogicalKeyboardKey.arrowLeft) ||
@@ -196,31 +190,39 @@ class GymGame extends FlameGame
 
   @override
   void onTapDown(TapDownInfo info) {
+    // Re-enable the parent call so Flame processes the event.
     super.onTapDown(info);
-
+    debugPrint('TapDown: ${info.eventPosition.global}');
+    
     // Skip tap handling if player not initialized yet or game is over
     if (!_isPlayerInitialized || gameOver) {
+      debugPrint('Player not initialized or game over - ignoring tap');
       return;
     }
+    
+    // Directly trigger attack with priority
+    debugPrint('Triggering player attack from tap');
+    player.attack();
+  }
+  
+  // Override onTap to ensure any tap event will trigger the attack
+  @override
+  void onTap() {
+    if (_isPlayerInitialized && !gameOver) {
+      debugPrint('onTap called - triggering attack');
+      player.attack();
+    }
+  }
 
-    // Tap to move or attack depending on context
-    final worldPosition = camera.viewfinder.globalToLocal(
-      info.eventPosition.global,
-    );
-
-    // Simple tap to move
-    player.move((worldPosition - player.position).normalized());
-
-    // Schedule stopping after reaching tap position
-    Future.delayed(const Duration(milliseconds: 500), () {
-      player.move(Vector2.zero());
-    });
+  // Disable tap up handling that might interfere
+  @override
+  void onTapUp(TapUpInfo info) {
+    // Intentionally empty to prevent conflicts
   }
 
   void endGame() {
     gameOver = true;
     pauseEngine();
-
     // Game over logic would be implemented here
   }
 
@@ -238,8 +240,6 @@ class GymGame extends FlameGame
 
     // Update camera viewport to match the new screen size
     camera.viewport = FixedResolutionViewport(resolution: size);
-
-    // Don't reset player boundaries here - let DungeonWorld handle it
 
     // Update world boundaries for the dungeon
     final dungeonWorlds = children.whereType<DungeonWorld>();
@@ -262,4 +262,32 @@ class GymGame extends FlameGame
       scoreComponent.position = Vector2(20, 20); // Keep in top-left corner
     }
   }
+
+  // Add next level functionality
+  void nextLevel() {
+    // Increment level
+    currentLevel++;
+    
+    // Reset or modify game state for next level
+    enemiesDefeated = 0;
+    
+    // Increase difficulty based on level
+    final dungeonWorlds = children.whereType<DungeonWorld>();
+    if (dungeonWorlds.isNotEmpty) {
+      dungeonWorlds.first.setLevel(currentLevel);
+    }
+    
+    // Award bonus points for completing a level
+    gameScore += 100 * currentLevel;
+    updateScore();
+    
+    // Optional: Display level transition overlay
+    overlays.add('levelTransition');
+    
+    // Trigger level change event for any listeners
+    onLevelChange?.call(currentLevel);
+  }
+
+  // Optional level change callback
+  Function(int)? onLevelChange;
 }

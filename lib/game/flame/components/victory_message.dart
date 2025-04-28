@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
@@ -8,9 +7,10 @@ import 'dart:math' as math;
 class VictoryMessage extends PositionComponent
     with TapCallbacks, HasGameReference {
   final String message;
-  final Function? onNextLevel;
+  final Function? onNextLevel; // Now we'll actually use this parameter
   final math.Random _random = math.Random();
   late SpriteAnimationComponent _victoryAnimation;
+  bool _pulsingEffectAdded = false; // Renamed flag for clarity
 
   VictoryMessage({
     required this.message,
@@ -18,9 +18,7 @@ class VictoryMessage extends PositionComponent
     this.onNextLevel,
     super.priority = 10,
   }) : super(
-         // Position component at the exact center of the screen
          position: Vector2(screenSize.x / 2, screenSize.y / 2),
-         // Set anchor to center to ensure proper centering
          anchor: Anchor.center,
        );
 
@@ -29,46 +27,73 @@ class VictoryMessage extends PositionComponent
     await super.onLoad();
 
     try {
-      // Load the custom animation from the JSON file
-      final sprites = await game.images.load('ui/level_cleared.png');
+      // Load the level cleared animation from JSON file
+      final spriteSheet = await game.images.load('ui/level_cleared.png');
+      
+      // Create animation from the sprite sheet using JSON data
       final animation = SpriteAnimation.fromFrameData(
-        sprites,
+        spriteSheet,
         SpriteAnimationData.sequenced(
-          amount: 40, // 40 frames in the JSON file
-          stepTime: 0.05,
-          textureSize: Vector2(858, 399), // Size from the JSON
+          amount: 40, 
+          stepTime: 0.04,
+          textureSize: Vector2(796, 492),
           loop: false,
         ),
       );
 
-      // Create and add the animation component - center it within this component
+      // Ensure animation is always centered and stays visible after completion
       _victoryAnimation = SpriteAnimationComponent(
         animation: animation,
-        size: Vector2(858, 399) * 0.8, // Scale down slightly
+        size: Vector2(796, 492) * 0.35,
         anchor: Anchor.center,
-        position: Vector2.zero(), // Center in parent
+        position: Vector2.zero(),
+        removeOnFinish: false,
       );
-      add(_victoryAnimation);
 
-      // Calculate appropriate position for button - below the animation
-      final buttonY =
-          _victoryAnimation.size.y / 2 + 40; // Half animation height + spacing
+      _victoryAnimation.animationTicker?.onComplete = () {
+         debugPrint("Animation complete - adding pulsing effect");
+         // Add pulsing effect only once on completion
+         if (!_pulsingEffectAdded) {
+             _pulsingEffectAdded = true;
+             // Add the same pulsing effect used on the button
+             _victoryAnimation.add(
+                ScaleEffect.by(
+                  Vector2.all(1.05), // Same scale factor as button
+                  EffectController(
+                    duration: 0.8,       // Same duration as button
+                    reverseDuration: 0.8, // Same reverse duration as button
+                    infinite: true,      // Make it pulse continuously
+                    curve: Curves.easeInOut, // Same curve as button
+                  ),
+                ),
+             );
+         }
+      };
+
+      // Set animation to play once and hold the last frame
+      _victoryAnimation.playing = true;
+      
+      add(_victoryAnimation);
 
       // Add Next Level button if callback provided
       if (onNextLevel != null) {
-        final buttonComponent = _NextLevelButtonComponent(
-          onNextLevel: onNextLevel!,
-          position: Vector2(
-            0,
-            buttonY,
-          ), // Centered horizontally, positioned below animation
-          anchor: Anchor.center,
-          size: Vector2(220, 60),
+        // Load the green button image
+        final buttonImage = await game.images.load('ui/next_level_button.png');
+        
+        // Create button component - positioned at the bottom of the screen like in screenshot
+        final buttonSize = Vector2(150, 50);
+        
+        final buttonComponent = _GreenButtonComponent(  
+          sprite: Sprite(buttonImage),
+          position: Vector2(0, _victoryAnimation.size.y * 0.6), // Below STAGE CLEARED text
+          size: buttonSize,
+          onTap: () => onNextLevel!(),
         );
-
+        
+        // Add subtle pulsing effect
         buttonComponent.add(
           ScaleEffect.by(
-            Vector2.all(1.05), // Subtle scale change
+            Vector2.all(1.05),
             EffectController(
               duration: 0.8,
               reverseDuration: 0.8,
@@ -77,7 +102,7 @@ class VictoryMessage extends PositionComponent
             ),
           ),
         );
-
+        
         add(buttonComponent);
       }
 
@@ -152,119 +177,63 @@ class VictoryMessage extends PositionComponent
   }
 }
 
-// Enhanced custom component for the button
-class _NextLevelButtonComponent extends PositionComponent
-    with TapCallbacks, HasGameReference {
-  final Function onNextLevel;
-
-  _NextLevelButtonComponent({
-    required this.onNextLevel,
-    required super.position,
+// Simple button component for the next level button
+class _GreenButtonComponent extends SpriteComponent with TapCallbacks {
+  final Function onTap;
+  
+  _GreenButtonComponent({
+    required Sprite sprite,
+    required Vector2 position,
     required Vector2 size,
-    super.anchor = Anchor.center,
-  }) : super(size: size);
+    required this.onTap,
+  }) : super(
+    sprite: sprite, 
+    position: position, 
+    size: size,
+    anchor: Anchor.center
+  );
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    try {
-      // Replace complex button building with a simple sprite
-      final buttonSprite = await game.images.load('ui/next_level_button.png');
-      final buttonComponent = SpriteComponent(
-        sprite: Sprite(buttonSprite),
-        size: size,
-        anchor: Anchor.center,
-      );
-
-      // Add the sprite to the component
-      add(buttonComponent);
-
-      // Add a glowing effect
-      final glowEffect = _GlowComponent(
-        size: Vector2(size.x + 16, size.y + 16),
-        position: Vector2(-8, -8),
-        color: Colors.amber,
-        innerRadius: 12,
-      );
-      add(glowEffect);
-    } catch (e) {
-      debugPrint('Error loading Next Level button: $e');
-    }
+    
+    // Add NEXT LEVEL text to the button
+    final textComponent = TextComponent(
+      text: 'NEXT LEVEL',
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(
+              color: Colors.black54,
+              offset: Offset(1, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+      ),
+      anchor: Anchor.center,
+      position: size / 2,
+    );
+    
+    add(textComponent);
   }
-
+  
   @override
   void onTapDown(TapDownEvent event) {
     scale = Vector2.all(0.95); // Pressed effect
-    onNextLevel();
   }
-
+  
   @override
   void onTapUp(TapUpEvent event) {
     scale = Vector2.all(1.0);
+    onTap();
   }
-
+  
   @override
   void onTapCancel(TapCancelEvent event) {
     scale = Vector2.all(1.0);
-  }
-}
-
-// Glow component for button effects
-class _GlowComponent extends CustomPainterComponent {
-  final Color color;
-  final double innerRadius;
-  double pulsePhase = 0.0;
-
-  _GlowComponent({
-    required super.size,
-    required super.position,
-    required this.color,
-    required this.innerRadius,
-  }) : super(painter: _GlowPainter(color, innerRadius, 0.0));
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-
-    // Update the glow pulse
-    pulsePhase = (pulsePhase + dt) % 6.28; // 2*pi
-    final intensity = 0.6 + 0.4 * (0.5 + 0.5 * sin(pulsePhase));
-
-    // Update the painter with new intensity
-    painter = _GlowPainter(color, innerRadius, intensity);
-  }
-}
-
-class _GlowPainter extends CustomPainter {
-  final Color color;
-  final double innerRadius;
-  final double intensity;
-
-  _GlowPainter(this.color, this.innerRadius, this.intensity);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final rrect = RRect.fromRectAndRadius(
-      rect,
-      Radius.circular(innerRadius + 4),
-    );
-
-    // Create a glow effect with a gradient
-    final paint =
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4.0
-          ..color = color.withAlpha((255 * intensity).round());
-
-    canvas.drawRRect(rrect, paint);
-  }
-
-  @override
-  bool shouldRepaint(_GlowPainter oldPainter) {
-    return color != oldPainter.color ||
-        innerRadius != oldPainter.innerRadius ||
-        intensity != oldPainter.intensity;
   }
 }

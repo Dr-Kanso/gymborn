@@ -24,6 +24,11 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
   late double _minY;
   late double _maxY;
 
+  // Enemy attributes for level adjustment
+  late double _enemySpawnRate;
+  late int _enemyHealth;
+  late int _enemyDamage;
+
   DungeonWorld({required this.statsProvider, this.playableArea});
 
   @override
@@ -119,6 +124,53 @@ class DungeonWorld extends Component with HasGameReference<GymGame> {
 
     // Add walls, obstacles, etc.
     _addObstacles();
+  }
+
+  void setLevel(int level) {
+    // Adjust enemy spawn rate, enemy health, damage, etc. based on level
+    
+    // Increase enemy spawn rate
+    _enemySpawnRate = max(0.5, 2.0 - (level * 0.2));
+    
+    // Increase enemy health
+    _enemyHealth = 100 + ((level - 1) * 20);
+    
+    // Increase enemy damage
+    _enemyDamage = 10 + ((level - 1) * 5);
+    
+    // Spawn new enemies for this level
+    _spawnEnemiesForLevel(level);
+  }
+  
+  void _spawnEnemiesForLevel(int level) {
+    // Remove existing enemies
+    final enemies = game.children.whereType<Enemy>().toList();
+    for (final enemy in enemies) {
+      enemy.removeFromParent();
+    }
+    
+    // Spawn new enemies based on level
+    int enemyCount = 5 + (level * 2); // Increase enemy count by 2 per level
+    for (int i = 0; i < enemyCount; i++) {
+      // Position within playable area
+      final x = _minX + _random.nextDouble() * (_maxX - _minX);
+      final y = _minY + _random.nextDouble() * (_maxY - _minY);
+
+      // Create enemy
+      final enemy = Enemy(
+        position: Vector2(x, y),
+        size: Vector2(128, 128),
+        statsProvider: statsProvider,
+      );
+      
+      // Set detection radius
+      enemy.detectionRadius = 150 + (_random.nextDouble() * 100);
+
+      // Pass playable area boundaries to enemy
+      enemy.setBoundaries(_minX, _maxX, _minY, _maxY);
+      
+      game.add(enemy);
+    }
   }
 
   // Called when game window is resized

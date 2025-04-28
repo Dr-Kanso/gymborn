@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
+import 'package:flame/events.dart'; // Required for TapDetector
 import 'package:flame/game.dart';
+import 'package:flutter/material.dart'; // Required for debugPrint
 import '../controllers/battle_controller.dart';
 import 'entities/player_component.dart';
 import 'entities/enemy_component.dart';
@@ -34,6 +35,8 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    debugPrint('BattleGame loaded and ready for taps.');
 
     // Load background
     backgroundComponent = BackgroundComponent();
@@ -177,10 +180,20 @@ class BattleGame extends FlameGame with TapDetector, HasCollisionDetection {
 
   @override
   void onTapDown(TapDownInfo info) {
-    super.onTapDown(info);
+    super.onTapDown(info); // Allow Flame to process the event
+    debugPrint('Tap detected in BattleGame at ${info.eventPosition.global}');
 
     // Don't process attacks if victory achieved
     if (battleController.isVictory) return;
+
+    // Check if the player can attack via the controller
+    if (battleController.playerCanAttack && !battleController.isAttackInProgress) {
+      debugPrint('Conditions met, calling battleController.processPlayerAttack()');
+      // Trigger the attack via the BattleController
+      battleController.processPlayerAttack();
+    } else {
+      debugPrint('Attack conditions not met: playerCanAttack=${battleController.playerCanAttack}, isAttackInProgress=${battleController.isAttackInProgress}');
+    }
 
     // Don't allow player to attack if it's not their turn
     if (!battleController.playerCanAttack) {

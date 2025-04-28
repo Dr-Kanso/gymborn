@@ -129,30 +129,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 // New Battle Status Panel
                 BattleStatusPanel(controller: battleController),
 
-                // Simplified controls at the bottom
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed:
-                        battleController.player?.isDead == true ||
-                                !battleController.playerCanAttack ||
-                                battleController.isAttackInProgress
-                            ? null
-                            : () => battleController.processPlayerAttack(),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text(
-                      'ATTACK',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
+                // Removed attack button - now handled by Flame component
               ],
             ),
           ),
