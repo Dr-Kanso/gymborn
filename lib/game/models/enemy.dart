@@ -2,10 +2,12 @@ import 'dart:math';
 import 'player.dart';
 
 class Enemy {
+  final String id;
   final String name;
   int health;
   final int maxHealth;
   final int strength;
+  final bool isBoss;
   final Random _random = Random();
 
   Enemy({
@@ -13,6 +15,8 @@ class Enemy {
     required this.health,
     required this.maxHealth,
     required this.strength,
+    this.isBoss = false,
+    this.id = '',
   });
 
   bool get isDead => health <= 0;
@@ -23,7 +27,13 @@ class Enemy {
 
   void attackPlayer(Player player) {
     // Simple attack logic with some randomness
-    final damage = (strength + _random.nextInt(5)).clamp(1, strength * 2);
+    int damage;
+    if (isBoss && _random.nextDouble() < 0.3) {
+      // Special boss attack with extra damage
+      damage = (strength * 1.5).round();
+    } else {
+      damage = (strength + _random.nextInt(5)).clamp(1, strength * 2);
+    }
     player.takeDamage(damage);
   }
 }

@@ -41,6 +41,8 @@ flutter:
 
   # Assets
   assets:
+    - assets/images/ui/
+    - assets/images/ui/hp_bar/
     - assets/images/dungeons/
     - assets/images/characters/
     - assets/images/icons/

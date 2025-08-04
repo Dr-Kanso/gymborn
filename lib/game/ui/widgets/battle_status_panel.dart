@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/battle_controller.dart';
-import 'image_health_bar_widget.dart'; // Import the new widget
+import 'image_health_bar_widget.dart';
 
 class BattleStatusPanel extends StatelessWidget {
   final BattleController controller;
@@ -17,9 +17,8 @@ class BattleStatusPanel extends StatelessWidget {
     }
 
     // Define desired width for the health bars in the panel
-    const double healthBarWidth = 200.0; // Changed from 120.0
-    // Define desired height or let it be determined by aspect ratio via width
-    const double healthBarHeight = 20.0; // Adjust as needed, or set to null
+    const double healthBarWidth = 200.0;
+    const double healthBarHeight = 20.0;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -33,7 +32,7 @@ class BattleStatusPanel extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min, // Prevent column from taking extra space
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   player.name,
@@ -44,7 +43,6 @@ class BattleStatusPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Replace _buildHealthBar with ImageHealthBarWidget
                 ImageHealthBarWidget(
                   currentHealth: player.health,
                   maxHealth: player.maxHealth,
@@ -52,7 +50,6 @@ class BattleStatusPanel extends StatelessWidget {
                   height: healthBarHeight,
                 ),
                 const SizedBox(height: 2),
-                // Keep or remove HP text based on your preference
                 Text(
                   'HP: ${player.health}/${player.maxHealth}',
                   style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -61,13 +58,13 @@ class BattleStatusPanel extends StatelessWidget {
             ),
           ),
 
-          // VS indicator - replaced with image
+          // VS indicator
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Image.asset(
               'assets/images/ui/vs.png',
-              height: 20.0, // Adjust height as needed
-              width: 20.0,  // Adjust width as needed
+              height: 20.0,
+              width: 20.0,
               fit: BoxFit.contain,
             ),
           ),
@@ -76,7 +73,7 @@ class BattleStatusPanel extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min, // Prevent column from taking extra space
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   enemy.name,
@@ -87,7 +84,6 @@ class BattleStatusPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Replace _buildHealthBar with ImageHealthBarWidget
                 ImageHealthBarWidget(
                   currentHealth: enemy.health,
                   maxHealth: enemy.maxHealth,
@@ -95,7 +91,6 @@ class BattleStatusPanel extends StatelessWidget {
                   height: healthBarHeight,
                 ),
                 const SizedBox(height: 2),
-                // Keep or remove HP text based on your preference
                 Text(
                   'HP: ${enemy.health}/${enemy.maxHealth}',
                   style: const TextStyle(color: Colors.white, fontSize: 12),

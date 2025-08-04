@@ -144,31 +144,50 @@ class EnemyComponent extends PositionComponent
       remove(_currentAnimation!);
     }
 
-    // Recreate animation using stored sprite sheet
-    _attackAnimation = _createAnimation(
-      _attackSpriteSheet!,
-      12,
-      0.04, // Increase duration
-      loop: false,
-    );
+    try {
+      // Recreate animation using stored sprite sheet
+      _attackAnimation = _createAnimation(
+        _attackSpriteSheet!,
+        12,
+        0.04, // Increase duration
+        loop: false,
+      );
 
-    _currentAnimation = _attackAnimation;
-    add(_currentAnimation!);
+      _currentAnimation = _attackAnimation;
+      add(_currentAnimation!);
+    } catch (e) {
+      debugPrint('Error playing attack animation: $e');
+      _isAttacking = false;
+      _showIdleAnimation(); // Fall back to idle animation
+    }
   }
 
   void playHurtAnimation() {
-    if (_isHurt || _isDying) return;
+    if (_isHurt || _isDying || _hurtSpriteSheet == null) {
+      return; // Added null check
+    }
 
     _isHurt = true;
     if (_currentAnimation != null) {
       remove(_currentAnimation!);
     }
 
-    // Recreate animation using stored sprite sheet
-    _hurtAnimation = _createAnimation(_hurtSpriteSheet!, 12, 0.04, loop: false);
+    try {
+      // Recreate animation using stored sprite sheet
+      _hurtAnimation = _createAnimation(
+        _hurtSpriteSheet!,
+        12,
+        0.04,
+        loop: false,
+      );
 
-    _currentAnimation = _hurtAnimation;
-    add(_currentAnimation!);
+      _currentAnimation = _hurtAnimation;
+      add(_currentAnimation!);
+    } catch (e) {
+      debugPrint('Error playing hurt animation: $e');
+      _isHurt = false;
+      _showIdleAnimation(); // Fall back to idle animation
+    }
   }
 
   void playDeathAnimation() {
